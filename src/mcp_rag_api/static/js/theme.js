@@ -27,6 +27,8 @@ function graphTheme() {
     labelDim: v("--graph-label-dim"),
     nodeStroke: v("--graph-node-stroke"),
     edgeRgb: v("--graph-edge-rgb"),
+    accent: v("--accent"), // hex: o grafo aplica alpha com hexAlpha()
+    accentRgb: v("--accent-rgb"),
   };
 }
 

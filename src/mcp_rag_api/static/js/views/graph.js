@@ -331,14 +331,14 @@ function drawGraph(data) {
         ? hexAlpha(n.color, 0.18)
         : highlight
           ? isHl(n)
-            ? "#d97757"
+            ? colors.accent
             : hexAlpha(n.color, 0.25)
           : n.color;
       // halo suave
       if (!dim) {
         ctx.beginPath();
         ctx.arc(n.x, n.y, r + (hovered ? 6 : 4), 0, 2 * Math.PI);
-        ctx.fillStyle = hexAlpha(highlight ? "#d97757" : n.color, hovered ? 0.28 : 0.14);
+        ctx.fillStyle = hexAlpha(highlight ? colors.accent : n.color, hovered ? 0.28 : 0.14);
         ctx.fill();
       }
       ctx.beginPath();
@@ -352,7 +352,7 @@ function drawGraph(data) {
       if (scale < 0.6 && !hovered) return;
       const fontSize = 12 / scale;
       const text = n.label.length > 36 ? n.label.slice(0, 35) + "…" : n.label;
-      ctx.font = `${hovered ? 600 : 500} ${fontSize}px system-ui, -apple-system, "Segoe UI", sans-serif`;
+      ctx.font = `${hovered ? 600 : 500} ${fontSize}px Inter, system-ui, -apple-system, "Segoe UI", sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       ctx.fillStyle = dim ? colors.labelDim : hovered ? colors.labelHover : colors.label;
@@ -364,11 +364,11 @@ function drawGraph(data) {
       ctx.fillStyle = color;
       ctx.fill();
     })
-    // link explícito = sólido coral; similaridade = tracejado cinza
+    // link explícito = sólido na cor de acento; similaridade = tracejado cinza
     .linkColor((l) => {
       if (highlight && !(isHl(l.source) && isHl(l.target))) return `rgba(${colors.edgeRgb}, 0.04)`;
-      if (l.kind === "link") return highlight ? "rgba(217, 119, 87, 0.95)" : "rgba(217, 119, 87, 0.85)";
-      if (highlight) return "rgba(217, 119, 87, 0.5)";
+      if (l.kind === "link") return `rgba(${colors.accentRgb}, ${highlight ? 0.95 : 0.85})`;
+      if (highlight) return `rgba(${colors.accentRgb}, 0.5)`;
       return `rgba(${colors.edgeRgb}, ${Math.min(0.7, 0.28 + Math.max(0, l.similarity - state.minSimilarity) * 1.5)})`;
     })
     // espessura mínima visível mesmo para arestas logo acima do threshold

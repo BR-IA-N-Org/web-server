@@ -1,63 +1,121 @@
-/* Concilium Dashboard — look & feel Claude.ai (tema escuro padrão + claro via [data-theme="light"]). Ver agents/web-server/references/README.md */
+/* Concilium Dashboard — estética Resend (plan-web-15): tema escuro padrão + claro via [data-theme="light"]. Ver agents/web-server/references/README.md */
 
+/* Fonte da interface: Inter variável, servida localmente (CSP default-src 'self'). Ver static/vendor/README.md */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("vendor/inter/inter-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("vendor/inter/inter-latin-ext-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* Estética Resend (plan-web-15): moldura quase preta, conteúdo num painel recuado com borda,
+   neutros frios, seleção neutra e o coral da marca só na ação primária. Cor nova = token nos dois temas. */
 :root {
-  --bg: #171614;
-  --bg-sidebar: #1f1e1c;
-  --bg-elevated: #262522;
+  --bg-frame: #0a0a0a; /* fundo da janela e da sidebar */
+  --bg: #111111; /* painel de conteúdo */
+  --bg-sidebar: #0d0d0d; /* superfícies recuadas dentro do conteúdo (árvore, painéis laterais) */
+  --bg-elevated: #191919; /* cards, inputs, menus */
   --border: rgba(var(--fg-rgb), 0.08);
-  --text: #ececec;
-  --text-dim: #9b9893;
-  --accent: #d97757;
-  --accent-soft: rgba(217, 119, 87, 0.14);
-  --danger: #e06c5b;
-  --danger-soft: rgba(224, 108, 91, 0.12);
-  --success: var(--success);
-  --success-rgb: 124, 198, 141;
-  --text-body: #c9c6c0;
+  --border-strong: rgba(var(--fg-rgb), 0.14);
+  --text: #ededed;
+  --text-dim: #a1a1a1;
+  --text-body: #d4d4d4;
+  --accent: #d97757; /* coral da marca */
+  --accent-rgb: 217, 119, 87;
+  --accent-soft: rgba(var(--accent-rgb), 0.14);
+  --on-accent: #ffffff;
+  /* seleção (nav ativa, nota aberta, aba ativa): neutra, como no Resend */
+  --selected-bg: rgba(var(--fg-rgb), 0.08);
+  --selected-text: #ffffff;
+  /* "edge": borda em degradê opaco (clara em cima, some embaixo) das superfícies — padrão Resend */
+  --edge-top: rgba(255, 255, 255, 0.16);
+  --edge-bottom: rgba(255, 255, 255, 0.05);
+  --edge-top-hover: rgba(255, 255, 255, 0.28);
+  --edge-bottom-hover: rgba(255, 255, 255, 0.1);
+  --edge-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --danger: #f87171;
+  --danger-rgb: 248, 113, 113;
+  --danger-soft: rgba(var(--danger-rgb), 0.12);
+  --success: #4ade80;
+  --success-rgb: 74, 222, 128;
   /* canais RGB para sobreposições com alpha: fg = tinta sobre o fundo, surface = vidro, shadow = sombras */
   --fg-rgb: 255, 255, 255;
-  --surface-rgb: 31, 30, 28;
+  --surface-rgb: 17, 17, 17;
   --shadow-rgb: 0, 0, 0;
-  --backdrop: rgba(10, 9, 8, 0.66);
+  --backdrop: rgba(0, 0, 0, 0.6);
   /* grafo (canvas lê via getComputedStyle) */
-  --graph-label: #9b9893;
-  --graph-label-hover: #ececec;
-  --graph-label-dim: rgba(155, 152, 147, 0.35);
-  --graph-node-stroke: rgba(23, 22, 20, 0.9);
-  --graph-edge-rgb: 236, 236, 236;
+  --graph-label: #a1a1a1;
+  --graph-label-hover: #ededed;
+  --graph-label-dim: rgba(161, 161, 161, 0.35);
+  --graph-node-stroke: rgba(17, 17, 17, 0.9);
+  --graph-edge-rgb: 237, 237, 237;
   color-scheme: dark;
-  --radius: 10px;
-  --sidebar-w: 260px;
+  --radius: 8px;
+  --radius-panel: 12px;
+  --sidebar-w: 248px;
   --panel-w: 340px;
-  --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
 }
 
-/* tema claro (Claude.ai light): mesmos tokens, valores invertidos */
+/* tema claro: mesmos tokens, neutros claros */
 :root[data-theme="light"] {
-  --bg: #faf9f5;
-  --bg-sidebar: #f3f1ea;
+  --bg-frame: #f5f5f5;
+  --bg: #ffffff;
+  --bg-sidebar: #fafafa;
   --bg-elevated: #ffffff;
-  --border: rgba(31, 30, 29, 0.12);
-  --text: #1f1e1d;
-  --text-dim: #6b6a65;
+  --border: rgba(var(--fg-rgb), 0.09);
+  --border-strong: rgba(var(--fg-rgb), 0.16);
+  --text: #0a0a0a;
+  --text-dim: #737373;
+  --text-body: #262626;
   --accent: #c96442;
-  --accent-soft: rgba(201, 100, 66, 0.12);
-  --danger: #c4483a;
-  --danger-soft: rgba(196, 72, 58, 0.1);
-  --success: #2e8540;
-  --success-rgb: 46, 133, 64;
-  --text-body: #3d3c38;
-  --fg-rgb: 31, 30, 29;
+  --accent-rgb: 201, 100, 66;
+  --selected-bg: rgba(var(--fg-rgb), 0.06);
+  --selected-text: #0a0a0a;
+  --edge-top: rgba(10, 10, 10, 0.14);
+  --edge-bottom: rgba(10, 10, 10, 0.06);
+  --edge-top-hover: rgba(10, 10, 10, 0.24);
+  --edge-bottom-hover: rgba(10, 10, 10, 0.1);
+  --edge-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --danger: #dc2626;
+  --danger-rgb: 220, 38, 38;
+  --success: #16a34a;
+  --success-rgb: 22, 163, 74;
+  --fg-rgb: 10, 10, 10;
   --surface-rgb: 255, 255, 255;
-  --shadow-rgb: 60, 50, 40;
-  --backdrop: rgba(40, 35, 30, 0.35);
-  --graph-label: #6b6a65;
-  --graph-label-hover: #1f1e1d;
-  --graph-label-dim: rgba(107, 106, 101, 0.35);
+  --shadow-rgb: 0, 0, 0;
+  --backdrop: rgba(0, 0, 0, 0.3);
+  --graph-label: #737373;
+  --graph-label-hover: #0a0a0a;
+  --graph-label-dim: rgba(115, 115, 115, 0.35);
   --graph-node-stroke: rgba(var(--fg-rgb), 0.9);
-  --graph-edge-rgb: 60, 58, 54;
+  --graph-edge-rgb: 64, 64, 64;
   color-scheme: light;
+}
+
+/* registradas como cor para o degradê da borda animar no hover (sem registro, custom property não interpola) */
+@property --edge-top {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --edge-bottom {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
 }
 
 * {
@@ -68,11 +126,14 @@ html,
 body {
   margin: 0;
   height: 100%;
-  background: var(--bg);
+  background: var(--bg-frame);
   color: var(--text);
   font-family: var(--font);
   font-size: 14px;
   line-height: 1.5;
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* ícones Lucide: wrapper sem baseline/line-height, para alinhar ao centro em botões e listas */
@@ -107,8 +168,7 @@ body {
 .sidebar {
   width: var(--sidebar-w);
   flex: 0 0 var(--sidebar-w);
-  background: var(--bg-sidebar);
-  border-right: 1px solid var(--border);
+  background: var(--bg-frame);
   display: flex;
   flex-direction: column;
   padding: 14px 10px;
@@ -147,13 +207,14 @@ body {
 }
 
 .nav-item:hover {
-  background: rgba(var(--fg-rgb), 0.04);
+  background: rgba(var(--fg-rgb), 0.05);
   color: var(--text);
 }
 
 .nav-item.active {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--selected-bg);
+  color: var(--selected-text);
+  font-weight: 500;
 }
 
 .nav-spacer {
@@ -212,10 +273,13 @@ body {
   white-space: nowrap;
 }
 
+/* pelo menos a largura do rodapé, crescendo até caber o rótulo mais longo numa linha só */
 .user-menu {
   position: absolute;
   left: 0;
-  right: 0;
+  min-width: 100%;
+  width: max-content;
+  max-width: calc(100vw - 24px);
   bottom: calc(100% + 6px);
   z-index: 20;
   background: var(--bg-elevated);
@@ -256,6 +320,7 @@ body {
   color: var(--text);
   font: inherit;
   text-align: left;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -369,6 +434,10 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  margin: 8px 8px 8px 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
 }
 
 .page {
@@ -383,6 +452,23 @@ body {
   align-items: center;
   gap: 10px;
   padding: 18px 22px 10px;
+  /* acompanha a coluna de conteúdo da tela (--page-max); telas de largura total não definem */
+  width: 100%;
+  max-width: var(--page-max, none);
+  margin-inline: auto;
+}
+
+/* largura da coluna de conteúdo por tela — o cabeçalho usa a mesma, para alinhar título e conteúdo */
+.search-page {
+  --page-max: 860px;
+}
+
+.overview-page {
+  --page-max: 1240px;
+}
+
+.page:has(.page-col) {
+  --page-max: 1080px;
 }
 
 .page-header h1 {
@@ -390,8 +476,9 @@ body {
   align-items: center;
   gap: 10px;
   margin: 0;
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 600;
+  letter-spacing: -0.015em;
 }
 
 .page-header h1 svg {
@@ -415,8 +502,6 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 6px 10px;
   color: var(--text-dim);
@@ -452,8 +537,6 @@ select option {
 
 .seg {
   display: inline-flex;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 2px;
   gap: 2px;
@@ -471,8 +554,9 @@ select option {
 }
 
 .seg button.active {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--selected-bg);
+  color: var(--selected-text);
+  font-weight: 500;
 }
 
 .btn {
@@ -484,32 +568,38 @@ select option {
   background: var(--bg-elevated);
   color: var(--text);
   font: inherit;
-  padding: 7px 14px;
+  font-weight: 500;
+  padding: 6px 12px;
   cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, filter 0.12s;
 }
 
 .btn:hover {
   background: rgba(var(--fg-rgb), 0.06);
+  border-color: var(--border-strong);
 }
 
+/* ação primária: único lugar com cor forte (coral da marca com brilho sutil no topo, como no Resend) */
 .btn.primary {
   background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
+  border-color: rgba(var(--fg-rgb), 0.12);
+  color: var(--on-accent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 1px 2px rgba(var(--shadow-rgb), 0.3);
 }
 
 .btn.primary:hover {
-  filter: brightness(1.08);
+  background: var(--accent);
+  filter: brightness(1.1);
 }
 
 .btn.danger {
   color: var(--danger);
-  border-color: rgba(224, 108, 91, 0.4);
+  border-color: rgba(var(--danger-rgb), 0.4);
   background: var(--danger-soft);
 }
 
 .btn.danger:hover {
-  background: rgba(224, 108, 91, 0.2);
+  background: rgba(var(--danger-rgb), 0.2);
 }
 
 .btn.sm {
@@ -753,7 +843,7 @@ select option {
 
 .chip.accent {
   color: var(--accent);
-  border-color: rgba(217, 119, 87, 0.4);
+  border-color: rgba(var(--accent-rgb), 0.4);
   background: var(--accent-soft);
 }
 
@@ -933,7 +1023,7 @@ select option {
   align-items: center;
   gap: 12px;
   background: var(--accent-soft);
-  border: 1px solid rgba(217, 119, 87, 0.4);
+  border: 1px solid rgba(var(--accent-rgb), 0.4);
   border-radius: var(--radius);
   padding: 10px 14px;
   margin: 0 22px 14px;
@@ -949,7 +1039,7 @@ select option {
 
 .chip.danger-chip {
   color: var(--danger);
-  border-color: rgba(224, 108, 91, 0.4);
+  border-color: rgba(var(--danger-rgb), 0.4);
   background: var(--danger-soft);
 }
 
@@ -1074,7 +1164,7 @@ select option {
 
 .search-col {
   width: 100%;
-  max-width: 860px;
+  max-width: var(--page-max);
   margin: 0 auto;
   padding: 18px 22px 40px;
   display: flex;
@@ -1096,7 +1186,7 @@ select option {
 }
 
 .composer:focus-within {
-  border-color: rgba(217, 119, 87, 0.55);
+  border-color: rgba(var(--accent-rgb), 0.55);
 }
 
 .composer input {
@@ -1197,7 +1287,7 @@ select option {
 }
 
 .result.selected {
-  border-color: rgba(217, 119, 87, 0.55);
+  border-color: rgba(var(--accent-rgb), 0.55);
   background: var(--bg-elevated);
 }
 
@@ -1249,7 +1339,7 @@ select option {
 }
 
 .snippet mark {
-  background: rgba(217, 119, 87, 0.22);
+  background: rgba(var(--accent-rgb), 0.22);
   color: var(--text);
   border-radius: 3px;
   padding: 0 2px;
@@ -1317,7 +1407,7 @@ select option {
 
 .page-col {
   width: 100%;
-  max-width: 1080px;
+  max-width: var(--page-max, 1080px);
   margin: 0 auto;
   padding: 6px 22px 40px;
   display: flex;
@@ -1375,9 +1465,7 @@ select option {
   align-items: flex-start;
   gap: 10px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--bg);
   cursor: pointer;
   font-size: 13px;
 }
@@ -1398,7 +1486,7 @@ select option {
 }
 
 .scope-option:has(input:checked) {
-  border-color: rgba(217, 119, 87, 0.5);
+  border-color: rgba(var(--accent-rgb), 0.5);
   background: var(--accent-soft);
 }
 
@@ -1411,15 +1499,50 @@ select option {
 
 /* "data-table" (não "table"): o Toast UI usa a classe .table no botão de tabela da toolbar */
 .data-table {
-  border: 1px solid var(--border);
   border-radius: 12px;
-  background: var(--bg-sidebar);
   overflow: hidden;
+}
+
+/* células de dados em tinta de corpo (só o cabeçalho e o que é secundário ficam apagados);
+   nunca quebram linha — o que não cabe vira reticências e o texto completo fica no title */
+.tcell {
+  min-width: 0;
+  color: var(--text-body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tcell .chip,
+.tcell-who {
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.tcell-who {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tcell-who > [data-icon] {
+  color: var(--text-dim);
+}
+
+.chip-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tcell.muted {
+  color: var(--text-dim);
 }
 
 .trow {
   display: grid;
-  grid-template-columns: minmax(200px, 1.6fr) minmax(140px, 1.3fr) 130px 120px 110px 190px;
+  grid-template-columns: minmax(200px, 1.6fr) minmax(120px, 0.9fr) minmax(170px, 1.2fr) 100px 110px 190px;
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
@@ -1432,7 +1555,7 @@ select option {
 }
 
 .trow:not(.thead):hover {
-  background: rgba(var(--fg-rgb), 0.02);
+  background: rgba(var(--fg-rgb), 0.04);
 }
 
 .trow.thead {
@@ -1617,6 +1740,72 @@ select option {
   grid-template-columns: 1fr 1fr;
 }
 
+.scope-grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* texto de apoio abaixo de um campo, para quem não conhece o jargão */
+.form-help {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-dim);
+}
+
+.form-help.access-custom {
+  color: var(--accent);
+}
+
+/* "Ver mais": o avançado fica recolhido; a seta gira e o rótulo troca ao abrir */
+.advanced summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.advanced summary::-webkit-details-marker {
+  display: none;
+}
+
+.advanced summary:hover {
+  color: var(--text);
+}
+
+.advanced summary > [data-icon] {
+  transition: transform 0.15s;
+}
+
+.advanced[open] summary > [data-icon] {
+  transform: rotate(90deg);
+}
+
+.advanced summary .more,
+.advanced summary .less {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.advanced[open] summary .more,
+.advanced:not([open]) summary .less {
+  display: none;
+}
+
+.advanced-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 8px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(var(--fg-rgb), 0.02);
+}
+
 .create-grid.three {
   grid-template-columns: 1fr 1fr 1.4fr;
 }
@@ -1661,9 +1850,7 @@ textarea.input {
   align-items: center;
   gap: 7px;
   padding: 5px 12px;
-  border: 1px solid var(--border);
   border-radius: 999px;
-  background: var(--bg);
   font-size: 13px;
   cursor: pointer;
 }
@@ -1673,7 +1860,7 @@ textarea.input {
 }
 
 .chip-pick:has(input:checked) {
-  border-color: rgba(217, 119, 87, 0.5);
+  border-color: rgba(var(--accent-rgb), 0.5);
   background: var(--accent-soft);
 }
 
@@ -1692,9 +1879,12 @@ textarea.input {
   flex-direction: column;
   gap: 12px;
   padding: 14px 16px;
-  border: 1px solid var(--border);
   border-radius: 12px;
-  background: var(--bg-sidebar);
+}
+
+.agent-desc {
+  margin-top: 2px;
+  color: var(--text-body);
 }
 
 .agent-card.revoked {
@@ -1721,7 +1911,8 @@ textarea.input {
   flex-wrap: wrap;
   gap: 10px;
   padding-left: 44px;
-  font-size: 12px;
+  font-size: 12.5px;
+  color: var(--text-body);
 }
 
 .agent-meta > span {
@@ -1773,7 +1964,11 @@ textarea.input {
 }
 
 .modal-head .muted {
-  font-size: 12.5px;
+  display: block;
+  max-width: 64ch;
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .modal-body {
@@ -1869,7 +2064,7 @@ textarea.input {
 }
 
 .btn:focus-visible {
-  outline: 2px solid rgba(217, 119, 87, 0.6);
+  outline: 2px solid rgba(var(--accent-rgb), 0.6);
   outline-offset: 2px;
 }
 
@@ -1927,17 +2122,29 @@ textarea.input {
 
 .scope-option input:focus-visible,
 .check input:focus-visible {
-  outline: 2px solid rgba(217, 119, 87, 0.6);
+  outline: 2px solid rgba(var(--accent-rgb), 0.6);
   outline-offset: 2px;
 }
 
 .scope-option:hover {
-  border-color: rgba(var(--fg-rgb), 0.16);
+  --edge-top: var(--edge-top-hover);
+  --edge-bottom: var(--edge-bottom-hover);
+}
+
+/* telas médias: a coluna "Criada" sai primeiro (a data continua no title da linha) */
+@media (max-width: 1300px) {
+  .trow:not(.users) {
+    grid-template-columns: minmax(180px, 1.6fr) minmax(110px, 0.9fr) minmax(172px, 1.2fr) 110px 190px;
+  }
+
+  .trow:not(.users) > :nth-child(4) {
+    display: none;
+  }
 }
 
 @media (max-width: 1100px) {
   .trow {
-    grid-template-columns: minmax(180px, 1.5fr) minmax(120px, 1fr) 110px 150px;
+    grid-template-columns: minmax(180px, 1.5fr) minmax(120px, 1fr) 100px 190px;
   }
 
   .trow > :nth-child(3),
@@ -1990,7 +2197,7 @@ textarea.input {
   gap: 10px;
   padding: 7px 8px 7px 12px;
   background: rgba(var(--surface-rgb), 0.92);
-  border: 1px solid rgba(217, 119, 87, 0.35);
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
   border-radius: var(--radius);
   font-size: 12.5px;
   color: var(--text-dim);
@@ -2053,7 +2260,7 @@ textarea.input {
 .edge-swatch {
   width: 18px;
   flex: none;
-  border-top: 2px solid rgba(217, 119, 87, 0.85);
+  border-top: 2px solid rgba(var(--accent-rgb), 0.85);
 }
 
 .edge-swatch.semantic {
@@ -2177,7 +2384,7 @@ textarea.input {
 }
 
 .connect-option.selected {
-  border-color: rgba(217, 119, 87, 0.5);
+  border-color: rgba(var(--accent-rgb), 0.5);
   background: var(--accent-soft);
 }
 
@@ -2187,12 +2394,12 @@ textarea.input {
 
 #connect-mode.active {
   background: var(--accent-soft);
-  border-color: rgba(217, 119, 87, 0.5);
+  border-color: rgba(var(--accent-rgb), 0.5);
   color: var(--accent);
 }
 
 .graph-notice.connect {
-  border-color: rgba(217, 119, 87, 0.6);
+  border-color: rgba(var(--accent-rgb), 0.6);
   color: var(--text);
 }
 
@@ -2436,8 +2643,8 @@ textarea.input {
 }
 
 .tree-note.active {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--selected-bg);
+  color: var(--selected-text);
 }
 
 .dirty-dot {
@@ -2772,32 +2979,35 @@ body:not([data-role="admin"]) .tech {
 }
 
 /* ---------------------------------------------------------------- painel (gráficos) */
-/* Tokens de gráfico validados (skill dataviz) contra a superfície escura #1f1e1c:
-   --viz-accent = coral da marca ajustado para a faixa de luminosidade do modo escuro. */
+/* Tokens de gráfico validados (skill dataviz, scripts/validate_palette.js) contra as superfícies dos cards:
+   coral da marca ajustado para a faixa de luminosidade — #d47252 sobre #171717 (escuro; o #d97757 da UI
+   estoura a faixa) e #c96442 sobre #ffffff (claro). Série única, todos os checks PASS. */
 .overview-page {
-  --viz-surface: #1f1e1c;
+  --viz-surface: #171717;
   --viz-accent: #d47252;
+  --viz-accent-hover: #e08a6c;
   --viz-accent-track: rgba(212, 114, 82, 0.18);
-  --viz-grid: #2c2c2a;
-  --viz-axis: #383835;
-  --viz-muted: #898781;
-  --viz-good: #0ca30c;
+  --viz-grid: #262626;
+  --viz-axis: #333333;
+  --viz-muted: #8a8a8a;
+  --viz-good: #22c55e;
   overflow-y: auto;
 }
 
 :root[data-theme="light"] .overview-page {
   --viz-surface: #ffffff;
   --viz-accent: #c96442;
+  --viz-accent-hover: #d97757;
   --viz-accent-track: rgba(201, 100, 66, 0.15);
-  --viz-grid: #ecebe6;
-  --viz-axis: #d6d4cd;
-  --viz-muted: #6b6a65;
-  --viz-good: #2e8540;
+  --viz-grid: #f0f0f0;
+  --viz-axis: #e0e0e0;
+  --viz-muted: #737373;
+  --viz-good: #16a34a;
 }
 
 .overview-col {
   width: 100%;
-  max-width: 1240px;
+  max-width: var(--page-max);
   margin: 0 auto;
   padding: 4px 22px 40px;
   display: flex;
@@ -2817,6 +3027,10 @@ body:not([data-role="admin"]) .tech {
   font-size: 12.5px;
 }
 
+.overview-filters .btn {
+  font-size: 12.5px;
+}
+
 .filter-label {
   display: inline-flex;
   align-items: center;
@@ -2826,12 +3040,11 @@ body:not([data-role="admin"]) .tech {
 
 /* seletor de período: pílulas num trilho, sem o contorno branco padrão do navegador */
 .period-seg {
+  --edge-surface: var(--viz-surface);
   display: inline-flex;
   gap: 2px;
   padding: 3px;
-  border: 1px solid var(--border);
   border-radius: 999px;
-  background: var(--viz-surface);
 }
 
 .period-seg button {
@@ -2852,9 +3065,9 @@ body:not([data-role="admin"]) .tech {
 }
 
 .period-seg button.active {
-  background: var(--accent);
-  color: #fff;
-  font-weight: 600;
+  background: var(--selected-bg);
+  color: var(--selected-text);
+  font-weight: 500;
 }
 
 .period-seg button:focus {
@@ -2862,7 +3075,7 @@ body:not([data-role="admin"]) .tech {
 }
 
 .period-seg button:focus-visible {
-  box-shadow: 0 0 0 2px var(--viz-surface), 0 0 0 4px rgba(217, 119, 87, 0.7);
+  box-shadow: 0 0 0 2px var(--viz-surface), 0 0 0 4px rgba(var(--accent-rgb), 0.7);
 }
 
 .overview-updated {
@@ -2879,18 +3092,63 @@ body:not([data-role="admin"]) .tech {
 
 .kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
 }
 
-.kpi {
+/* célula = cartão + legenda abaixo (fora do cartão, para os cartões terem todos a mesma altura) */
+.kpi-cell {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 14px 16px;
-  border: 1px solid var(--border);
+  min-width: 0;
+}
+
+/* KPI: cartão com borda em degradê; os que levam a uma tela são <button> (seta aparece no hover) */
+.kpi {
+  --edge-surface: var(--viz-surface);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px 15px;
   border-radius: 12px;
-  background: var(--viz-surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+
+button.kpi {
+  cursor: pointer;
+}
+
+button.kpi:hover,
+button.kpi:focus-visible {
+  --edge-top: var(--edge-top-hover);
+  --edge-bottom: var(--edge-bottom-hover);
+  --edge-surface: color-mix(in srgb, var(--viz-surface), #fff 3%);
+  transform: translateY(-1px);
+}
+
+button.kpi:focus-visible {
+  outline: 2px solid rgba(var(--accent-rgb), 0.7);
+  outline-offset: 2px;
+}
+
+.kpi-go {
+  position: absolute;
+  top: 13px;
+  right: 12px;
+  color: var(--text-dim);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+button.kpi:hover .kpi-go,
+button.kpi:focus-visible .kpi-go {
+  opacity: 1;
+  transform: none;
 }
 
 .kpi-label {
@@ -2901,6 +3159,7 @@ body:not([data-role="admin"]) .tech {
   color: var(--text-dim);
 }
 
+/* ícone neutro em pastilha; a marca "responde" no hover (mesma ideia das marcas dos gráficos) */
 .kpi-icon {
   display: inline-flex;
   align-items: center;
@@ -2908,9 +3167,18 @@ body:not([data-role="admin"]) .tech {
   width: 24px;
   height: 24px;
   flex: none;
+  border: 1px solid var(--border);
   border-radius: 7px;
-  background: var(--accent-soft);
+  background: rgba(var(--fg-rgb), 0.05);
+  color: var(--text-dim);
+  transition: color 0.15s, background 0.15s;
+}
+
+button.kpi:hover .kpi-icon,
+button.kpi:focus-visible .kpi-icon {
   color: var(--accent);
+  background: var(--accent-soft);
+  border-color: rgba(var(--accent-rgb), 0.25);
 }
 
 .kpi-row {
@@ -2921,14 +3189,20 @@ body:not([data-role="admin"]) .tech {
 }
 
 .kpi-value {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 600;
   line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
 
 .kpi-sub {
+  padding: 0 4px;
   font-size: 12px;
   color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .kpi-sub.up {
@@ -2952,18 +3226,16 @@ body:not([data-role="admin"]) .tech {
 .viz-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 
+/* cartão de gráfico: cabeçalho com divisória de ponta a ponta, corpo com margem (o SVG mede o clientWidth) */
 .viz-card {
+  --edge-surface: var(--viz-surface);
   display: flex;
   flex-direction: column;
-  gap: 12px;
   min-width: 0;
-  padding: 16px 18px;
-  border: 1px solid var(--border);
   border-radius: 12px;
-  background: var(--viz-surface);
 }
 
 .viz-card.wide {
@@ -2974,12 +3246,24 @@ body:not([data-role="admin"]) .tech {
   display: flex;
   align-items: flex-start;
   gap: 10px;
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid var(--border);
 }
 
 .viz-card-head h2 {
   margin: 0 0 2px;
-  font-size: 14.5px;
+  font-size: 14px;
   font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.viz-card > .viz-body,
+.viz-card > .viz-table {
+  margin: 14px 18px 16px;
+}
+
+#viz-recent > .viz-body {
+  margin: 6px 0 6px;
 }
 
 .viz-card-head .muted {
@@ -3037,7 +3321,7 @@ body:not([data-role="admin"]) .tech {
 
 .viz-col:hover .viz-mark,
 .viz-col:focus .viz-mark {
-  fill: #e08a6c; /* mesma cor, um passo mais clara: a marca "responde" ao hover */
+  fill: var(--viz-accent-hover); /* mesma cor, um passo mais clara: a marca "responde" ao hover */
 }
 
 .viz-col:focus-visible .viz-hit {
@@ -3114,10 +3398,15 @@ table.dt .num {
   margin-bottom: 6px;
 }
 
+.meter-head strong {
+  font-variant-numeric: tabular-nums;
+}
+
+/* trilho neutro: só o preenchimento leva a cor da marca (0% fica visivelmente vazio) */
 .meter-track {
-  height: 8px;
+  height: 6px;
   border-radius: 999px;
-  background: var(--viz-accent-track);
+  background: rgba(var(--fg-rgb), 0.08);
   overflow: hidden;
 }
 
@@ -3150,23 +3439,49 @@ table.dt .num {
   gap: 6px;
 }
 
+/* lista de notas recentes como linhas de tabela: divisórias de ponta a ponta, hover e seta à direita */
 .recent-row {
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 7px 8px;
+  padding: 9px 18px;
   border: 0;
-  border-radius: 8px;
+  border-bottom: 1px solid var(--border);
   background: transparent;
   color: var(--text);
   font: inherit;
   text-align: left;
   cursor: pointer;
+  transition: background 0.12s;
 }
 
-.recent-row:hover {
+.recent-row:last-child {
+  border-bottom: 0;
+  border-radius: 0 0 12px 12px;
+}
+
+.recent-row:hover,
+.recent-row:focus-visible {
   background: rgba(var(--fg-rgb), 0.04);
+}
+
+.recent-row:focus-visible {
+  outline: 2px solid rgba(var(--accent-rgb), 0.7);
+  outline-offset: -2px;
+}
+
+.recent-go {
+  color: var(--text-dim);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.recent-row:hover .recent-go,
+.recent-row:focus-visible .recent-go {
+  opacity: 1;
+  transform: none;
 }
 
 .recent-row .grow {
@@ -3258,4 +3573,73 @@ table.dt .num {
   margin: 2px 0 6px;
   font-size: 15.5px;
   font-weight: 600;
+}
+
+/* ---------------------------------------------------------------- padrão Resend: superfícies "edge" */
+/* Borda em degradê opaco (clara em cima, some embaixo) + leve brilho no topo. Duas camadas de fundo:
+   a superfície (--edge-surface) no padding-box e o degradê no border-box, sob uma borda transparente.
+   Para adotar numa superfície nova: incluir o seletor aqui e, se o fundo não for --bg-elevated,
+   definir --edge-surface nela. Fica no fim do arquivo de propósito (cascata). */
+.btn:not(.primary, .ghost, .danger, .danger-solid),
+.field,
+.seg,
+.period-seg,
+.kpi,
+.viz-card,
+.scope-option,
+.chip-pick,
+.data-table,
+.agent-card {
+  --edge-surface: var(--bg-elevated);
+  border: 1px solid transparent;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--edge-surface), #fff 3%), var(--edge-surface)) padding-box,
+    linear-gradient(180deg, var(--edge-top), var(--edge-bottom)) border-box;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), var(--edge-shadow);
+  transition: --edge-top 0.15s, --edge-bottom 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+
+.period-seg,
+.kpi,
+.viz-card {
+  --edge-surface: var(--viz-surface);
+}
+
+.scope-option,
+.chip-pick {
+  --edge-surface: var(--bg);
+}
+
+.data-table,
+.agent-card {
+  --edge-surface: var(--bg-sidebar);
+}
+
+.btn:not(.primary, .ghost, .danger, .danger-solid):hover {
+  --edge-top: var(--edge-top-hover);
+  --edge-bottom: var(--edge-bottom-hover);
+  --edge-surface: color-mix(in srgb, var(--bg-elevated), #fff 4%);
+}
+
+.btn:not(.primary, .ghost, .danger, .danger-solid):focus-visible {
+  outline: 2px solid rgba(var(--accent-rgb), 0.7);
+  outline-offset: 1px;
+}
+
+.chip-pick:hover {
+  --edge-top: var(--edge-top-hover);
+  --edge-bottom: var(--edge-bottom-hover);
+}
+
+.field:focus-within {
+  --edge-top: rgba(var(--accent-rgb), 0.7);
+  --edge-bottom: rgba(var(--accent-rgb), 0.45);
+}
+
+/* modal: mesma borda em degradê, mantendo a sombra grande que já tem */
+.modal {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--bg-elevated), var(--bg-elevated)) padding-box,
+    linear-gradient(180deg, var(--edge-top-hover), var(--edge-bottom)) border-box;
 }
