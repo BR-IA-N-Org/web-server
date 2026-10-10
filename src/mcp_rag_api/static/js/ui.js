@@ -179,4 +179,15 @@ function enhancePasswordFields(root = document) {
   }
 }
 
-export { escHtml, sanitizeNoteHtml, fmtDate, fmtAgo, debounce, modalShell, bindModal, uiDialog, uiConfirm, uiAlert, uiError, brandLogo, enhancePasswordFields };
+/* ---------------------------------------------------------------- "Ver mais" */
+
+// Bloco recolhido com o que é técnico/avançado: a tela fica simples por padrão e quem precisa abre.
+function disclosure({ id, hint = "", body }) {
+  return `
+    <details class="advanced" id="${id}">
+      <summary>${icon("chevron-right", 14)}<span class="more">${t("common.showMore")}</span><span class="less">${t("common.showLess")}</span>${hint ? `<span class="muted">· ${hint}</span>` : ""}</summary>
+      <div class="advanced-body">${body}</div>
+    </details>`;
+}
+
+export { escHtml, sanitizeNoteHtml, fmtDate, fmtAgo, debounce, modalShell, bindModal, uiDialog, uiConfirm, uiAlert, uiError, brandLogo, enhancePasswordFields, disclosure };
