@@ -41,3 +41,13 @@ Nada aqui passa por build; cada entrada registra origem e versão exata.
 - **Origem:** `https://cdn.jsdelivr.net/npm/@fontsource-variable/inter@5.0.16/files/`
 - **Licença:** SIL Open Font License 1.1 (ver `LICENSE`)
 - **Uso:** fonte da interface (plan-web-15, estética Resend). Local por causa da CSP (`default-src 'self'`, sem fonte externa).
+
+## swagger-ui/
+
+- **Arquivos:** `swagger-ui-bundle.js`, `swagger-ui.css` (+ `LICENSE`)
+- **Versão:** `swagger-ui-dist@5.17.14`
+- **Origem:** `https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.17.14/`
+- **Licença:** Apache-2.0 (ver `LICENSE`)
+- **Uso:** documentação da API em `/dash/docs`. Local por causa da CSP (`script-src 'self'`): o
+  `get_swagger_ui_html` padrão do FastAPI carrega do CDN e inicializa com `<script>` inline, o que
+  deixava a página em branco. A inicialização fica em `static/js/swagger-init.js`.
