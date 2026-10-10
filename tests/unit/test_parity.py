@@ -22,6 +22,10 @@ TOOL_ROUTES: dict[str, tuple[str, str]] = {
     "upsert_document": ("PUT", "/documents/upsert"),
     "archive_document": ("DELETE", "/documents/{document_id}"),
     "document_history": ("GET", "/documents/{document_id}/versions"),
+    # pastas dentro das coleções (plan-web-16)
+    "list_folders": ("GET", "/folders"),
+    "create_folder": ("POST", "/folders"),
+    "move_document": ("POST", "/documents/{document_id}/move"),
     # links
     "get_related": ("GET", "/documents/{document_id}/related"),
     "link_documents": ("POST", "/documents/{document_id}/links"),

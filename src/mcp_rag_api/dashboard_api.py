@@ -646,6 +646,74 @@ async def set_autonomy(slug: str, body: AutonomyIn, user: DashUser = Depends(req
     return await agents.set_agent_autonomy(admin, slug, body.auto_apply_updates)
 
 
+# ---------------------------------------------------------------- gerenciar agente (plan-web-16)
+# Editar, chaves e arquivar — mesmas regras do MCP/REST (core/agents.py): cada edição gera uma versão
+# nova do perfil, com histórico.
+
+_DASH_AGENT_NOTE = "edição pela dashboard"
+
+
+def _agent_admin(user: DashUser) -> Principal:
+    return Principal(actor=f"dash:{user.username}", scopes=frozenset({"admin"}))
+
+
+@router.get("/agents/{slug}")
+async def agent_detail(slug: str, user: DashUser = Depends(require_admin)) -> dict:
+    """Perfil completo (com system prompt), chaves do agente (sem o segredo) e histórico de versões."""
+    out = await agents.get_agent(_agent_admin(user), slug)
+    out["agent"]["auto_apply_updates"] = bool((out["agent"].get("config") or {}).get("auto_apply_updates"))
+    return out
+
+
+class AgentPatch(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    description: str | None = None
+    system_prompt: str | None = Field(default=None, min_length=1)
+    allowed_collections: list[str] | None = None
+    scopes: list[str] | None = None
+    auto_apply_updates: bool | None = None
+    change_note: str | None = None
+
+
+@router.patch("/agents/{slug}")
+async def update_agent(slug: str, body: AgentPatch, user: DashUser = Depends(require_admin)) -> dict:
+    """Edita o perfil do agente (gera uma versão nova). O slug não muda: a conexão MCP depende dele."""
+    if body.scopes is not None and not body.scopes:
+        raise KBError("O agente precisa de ao menos um escopo.")
+    config = {"auto_apply_updates": body.auto_apply_updates} if body.auto_apply_updates is not None else None
+    return await agents.update_agent(
+        _agent_admin(user),
+        slug,
+        (body.change_note or "").strip() or _DASH_AGENT_NOTE,
+        name=body.name.strip() if body.name else None,
+        description=body.description.strip() if body.description is not None else None,
+        system_prompt=body.system_prompt,
+        config=config,
+        allowed_collections=body.allowed_collections,
+        scopes=body.scopes,
+    )
+
+
+class AgentArchiveIn(BaseModel):
+    reason: str = "arquivado pela dashboard"
+
+
+@router.post("/agents/{slug}/archive")
+async def archive_agent(slug: str, body: AgentArchiveIn, user: DashUser = Depends(require_admin)) -> dict:
+    """Arquiva o agente e revoga todas as chaves dele (o histórico fica para auditoria)."""
+    return await agents.archive_agent(_agent_admin(user), slug, body.reason)
+
+
+class AgentKeyIn(BaseModel):
+    label: str | None = None
+
+
+@router.post("/agents/{slug}/keys")
+async def issue_agent_key(slug: str, body: AgentKeyIn, user: DashUser = Depends(require_admin)) -> dict:
+    """Emite uma chave nova para o agente — o segredo e o comando de conexão aparecem só nesta resposta."""
+    return await agents.issue_agent_key(_agent_admin(user), slug, (body.label or "").strip() or None)
+
+
 # ---------------------------------------------------------------- chaves Bearer
 
 

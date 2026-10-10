@@ -1887,6 +1887,59 @@ textarea.input {
   color: var(--text-body);
 }
 
+.agent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* modal "gerenciar agente" (plan-web-16): abas Perfil / Chaves / Histórico */
+.manage-tabs {
+  align-self: flex-start;
+}
+
+.manage-tabs .muted {
+  margin-left: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.manage-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.trow.agent-keys {
+  grid-template-columns: minmax(170px, 1.4fr) 120px minmax(140px, 1fr) 190px;
+}
+
+.trow.agent-history {
+  grid-template-columns: 64px minmax(160px, 1fr) minmax(150px, 0.8fr) 100px;
+}
+
+.results-empty.compact {
+  padding: 20px;
+}
+
+/* zona de perigo: ação destrutiva separada, com explicação ao lado */
+.danger-zone {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(var(--danger-rgb), 0.3);
+  border-radius: 10px;
+  background: rgba(var(--danger-rgb), 0.05);
+}
+
+.danger-zone .grow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+
 .agent-card.revoked {
   opacity: 0.6;
 }
@@ -2429,7 +2482,7 @@ textarea.input {
 }
 
 .notes-tree {
-  width: 270px;
+  width: 300px;
   flex: none;
   display: flex;
   flex-direction: column;
@@ -2453,9 +2506,13 @@ textarea.input {
   gap: 6px;
 }
 
+/* os três botões (Nota, Pasta, Importar) dividem a largura sem quebrar nem vazar da coluna */
 .notes-tree-actions .btn {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   justify-content: center;
+  padding-inline: 8px;
+  white-space: nowrap;
 }
 
 .notes-tree-list {
@@ -2548,7 +2605,7 @@ textarea.input {
   outline-offset: -2px;
 }
 
-/* subpastas: recuo menor que o da raiz para caber vários níveis em 270px */
+/* subpastas: recuo menor que o da raiz para caber vários níveis na coluna de 300px */
 .tree-notes .tree-notes {
   padding-left: 14px;
 }
