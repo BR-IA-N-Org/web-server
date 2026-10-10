@@ -2,10 +2,10 @@
 
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from html import escape
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Request, Response
-from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -194,7 +194,24 @@ async def dashboard_page() -> Response:
 @app.get("/dash/docs", include_in_schema=False)
 async def dash_docs(_user: DashUser = Depends(current_user)) -> HTMLResponse:
     """Swagger UI da API REST: só quem está logado na dashboard vê."""
-    return get_swagger_ui_html(openapi_url="/dash/api/openapi.json", title=f"{app.title} — documentação")
+    # Swagger servido localmente (static/vendor/swagger-ui) e inicializado por arquivo próprio: a CSP
+    # (script-src 'self') bloqueia o CDN e o <script> inline do get_swagger_ui_html padrão — página em branco.
+    html = f"""<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{escape(app.title)} — documentação</title>
+  <link rel="icon" href="/static/brand/logo.svg" />
+  <link rel="stylesheet" href="/static/vendor/swagger-ui/swagger-ui.css" />
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="/static/vendor/swagger-ui/swagger-ui-bundle.js"></script>
+  <script src="/static/js/swagger-init.js"></script>
+</body>
+</html>"""
+    return HTMLResponse(html)
 
 
 @app.get("/dash/api/openapi.json", include_in_schema=False)
