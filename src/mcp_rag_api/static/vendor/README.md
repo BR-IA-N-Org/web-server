@@ -33,3 +33,11 @@ Nada aqui passa por build; cada entrada registra origem e versão exata.
 - **Arquivo:** `force-graph.min.js`
 - **Origem:** release oficial — https://github.com/vasturiano/force-graph
 - **Uso:** grafo de conexões das notas na dashboard.
+
+## inter/
+
+- **Arquivos:** `inter-latin-wght-normal.woff2` e `inter-latin-ext-wght-normal.woff2` (fonte variável, pesos 100–900)
+- **Versão:** `@fontsource-variable/inter@5.0.16`
+- **Origem:** `https://cdn.jsdelivr.net/npm/@fontsource-variable/inter@5.0.16/files/`
+- **Licença:** SIL Open Font License 1.1 (ver `LICENSE`)
+- **Uso:** fonte da interface (plan-web-15, estética Resend). Local por causa da CSP (`default-src 'self'`, sem fonte externa).
