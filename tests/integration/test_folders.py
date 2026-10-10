@@ -85,9 +85,11 @@ async def test_viewer_cannot_create_and_names_are_validated(editor, viewer):
     assert resp.status_code == 400
     resp = await editor.post("/dash/api/folders", json={"collection": "fd-nao-existe", "name": "x"})
     assert resp.status_code == 404
-    # nome livre (acento, barra, aspas) — é só rótulo, exibido escapado
-    fid = await _folder(editor, "fd-botucatu", '  Projetos / 2026 "Q4"  ')
-    assert next(f for f in (await _tree(editor))["folders"] if f["id"] == fid)["name"] == 'Projetos / 2026 "Q4"'
+    # nome livre (acento, aspas, travessão) — é só rótulo, exibido escapado; "/" é o separador de caminho
+    fid = await _folder(editor, "fd-botucatu", '  Projetos — 2026 "Q4"  ')
+    assert next(f for f in (await _tree(editor))["folders"] if f["id"] == fid)["name"] == 'Projetos — 2026 "Q4"'
+    resp = await editor.post("/dash/api/folders", json={"collection": "fd-botucatu", "name": "A/B"})
+    assert resp.status_code == 400
 
 
 async def test_rename_and_cycle_protection(editor):
