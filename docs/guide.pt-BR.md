@@ -144,6 +144,8 @@ uv run mcp-rag-api create-user --username voce --role admin
 
 A tela inicial é **Notas**: pastas (coleções) à esquerda, editor visual (Toast UI, com aba Markdown) no centro e, sob demanda, as conexões e o histórico da nota. Tudo o que o time escreve vira, na hora, conhecimento dos agentes. O salvamento cria uma versão (Ctrl+S, botão, ~20 s parado ou ao trocar de nota); enquanto isso, um rascunho fica guardado no navegador. Atalhos: **Ctrl+S** salva, **Alt+N** cria nota.
 
+**Pastas dentro de pastas:** cada pasta principal (coleção) é um projeto, cliente ou área — é ela que define o que cada agente pode acessar. Dentro dela dá para criar **subpastas sem limite de profundidade**, como no Notion: passe o mouse na pasta → **+** cria uma nota ali, **…** abre o menu (nova subpasta, renomear, mover, excluir). Mover uma pasta leva tudo o que tem dentro, inclusive para outra pasta principal. Excluir uma pasta não apaga nada: as notas e subpastas sobem um nível. As subpastas são organização da dashboard; agentes via MCP/REST continuam enxergando a coleção (uma nota criada ou movida por agente cai na raiz da pasta principal).
+
 ### Importar um vault Obsidian
 
 Quem tem um vault no Obsidian e quer migrar para a base: na tela Notas, clique em **Importar** (papel de editor ou admin), selecione o `.zip` do vault e acompanhe o progresso na tela — a vetorização (quebra em trechos + embeddings) roda em background e pode levar minutos em vaults grandes. O cancelamento é cooperativo: para entre uma nota e outra.

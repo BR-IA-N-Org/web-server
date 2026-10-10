@@ -2278,6 +2278,109 @@ textarea.input {
   background: rgba(var(--fg-rgb), 0.04);
 }
 
+.tree-folder-head .grow {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* pastas aninhadas (plan-web-14): cabeçalho + ações que aparecem no hover/foco */
+.tree-folder-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.tree-folder-row .tree-folder-head {
+  flex: 1;
+  min-width: 0;
+}
+
+.tree-folder-icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--text-dim);
+}
+
+.tree-folder-tools {
+  position: absolute;
+  right: 2px;
+  display: none;
+  gap: 2px;
+  padding-left: 6px;
+  border-radius: 7px;
+  background: var(--bg-sidebar);
+}
+
+.tree-folder-row:hover .tree-folder-tools,
+.tree-folder-row:focus-within .tree-folder-tools {
+  display: inline-flex;
+}
+
+.tree-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.tree-tool:hover {
+  background: rgba(var(--fg-rgb), 0.08);
+  color: var(--text);
+}
+
+.tree-tool:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* subpastas: recuo menor que o da raiz para caber vários níveis em 270px */
+.tree-notes .tree-notes {
+  padding-left: 14px;
+}
+
+.tree-notes .tree-folder-head {
+  font-weight: 500;
+}
+
+.tree-menu {
+  position: fixed;
+  z-index: 40;
+  min-width: 200px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 16px 48px rgba(var(--shadow-rgb), 0.5);
+  font-size: 13px;
+}
+
+.menu-item.danger:hover {
+  color: var(--danger);
+}
+
+.menu-item.danger:hover > [data-icon] {
+  color: var(--danger);
+}
+
+.note-path {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.note-path .grow {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tree-folder-head .count {
   color: var(--text-dim);
   font-size: 11px;
