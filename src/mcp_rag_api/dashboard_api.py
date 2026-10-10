@@ -12,7 +12,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile
 from pydantic import BaseModel, Field
 
-from .core import agents, dash_auth, documents, graph, links, obsidian_import, search
+from .core import agents, dash_auth, documents, folders, graph, links, obsidian_import, search
 from .core.dash_auth import DashUser
 from .core.documents import parse_uuid
 from .db import audit, pool, record, records
@@ -166,8 +166,9 @@ def _who(actor: str | None) -> str:
 
 
 @router.get("/notes/tree")
-async def notes_tree() -> dict:
-    """Árvore leve da tela Notas: todas as coleções (inclusive vazias) e os documentos ativos, sem conteúdo."""
+async def notes_tree(user: DashUser = Depends(current_user)) -> dict:
+    """Árvore leve da tela Notas: todas as coleções (inclusive vazias), as pastas aninhadas dentro delas
+    (plan-web-14) e os documentos ativos com a pasta onde estão (folder_id NULL = raiz), sem conteúdo."""
     collections = await pool().fetch(
         """
         SELECT c.name, c.description, count(d.id) FILTER (WHERE d.status = 'active') AS documents
@@ -177,13 +178,17 @@ async def notes_tree() -> dict:
     )
     notes = await pool().fetch(
         """
-        SELECT d.id, d.title, c.name AS collection, d.tags, d.version, d.updated_at, d.updated_by
+        SELECT d.id, d.title, c.name AS collection, d.folder_id, d.tags, d.version, d.updated_at, d.updated_by
         FROM documents d JOIN collections c ON c.id = d.collection_id
         WHERE d.status = 'active'
         ORDER BY c.name, lower(d.title)
         """
     )
-    return {"collections": records(collections), "notes": records(notes)}
+    return {
+        "collections": records(collections),
+        "folders": await folders.list_folders(_reader(user)),
+        "notes": records(notes),
+    }
 
 
 @router.get("/notes/{document_id}")
@@ -197,15 +202,23 @@ class NoteIn(BaseModel):
     content: str = Field(min_length=1)
     tags: list[str] = []
     force: bool = False
+    folder_id: str | None = None  # pasta dentro da coleção (None = raiz)
 
 
 @router.post("/notes")
 async def create_note(body: NoteIn, user: DashUser = Depends(require_editor)) -> dict:
     """Cria a nota. Se houver conteúdo muito parecido, devolve created=false + similar_document (a UI
     pergunta e repete com force=true)."""
-    return await documents.add_document(
-        _writer(user), body.collection, body.title, body.content, tags=body.tags, force=body.force
+    writer = _writer(user)
+    if body.folder_id:
+        await folders.ensure_folder_in(writer, body.folder_id, body.collection)  # valida antes de criar
+    result = await documents.add_document(
+        writer, body.collection, body.title, body.content, tags=body.tags, force=body.force
     )
+    if body.folder_id and result.get("created"):
+        await folders.place_document(writer, result["document_id"], body.folder_id)
+        result["folder_id"] = body.folder_id
+    return result
 
 
 class NotePatch(BaseModel):
@@ -242,11 +255,17 @@ async def update_note(document_id: str, body: NotePatch, user: DashUser = Depend
 
 class MoveIn(BaseModel):
     collection: str
+    folder_id: str | None = None  # pasta de destino dentro da coleção (None = raiz)
 
 
 @router.post("/notes/{document_id}/move")
 async def move_note(document_id: str, body: MoveIn, user: DashUser = Depends(require_editor)) -> dict:
-    return await documents.move_document(_writer(user), document_id, body.collection)
+    writer = _writer(user)
+    if body.folder_id:
+        await folders.ensure_folder_in(writer, body.folder_id, body.collection)
+    result = await documents.move_document(writer, document_id, body.collection)
+    placed = await folders.place_document(writer, document_id, body.folder_id)
+    return {**result, "moved": True, "folder_id": placed["folder_id"]}
 
 
 class ArchiveIn(BaseModel):
@@ -287,6 +306,45 @@ class CollectionIn(BaseModel):
 @router.post("/collections")
 async def create_collection(body: CollectionIn, user: DashUser = Depends(require_editor)) -> dict:
     return await documents.create_collection(_writer(user), body.name, body.description)
+
+
+# ---------------------------------------------------------------- pastas aninhadas (plan-web-14)
+
+
+class FolderIn(BaseModel):
+    collection: str
+    name: str = Field(min_length=1, max_length=folders.FOLDER_NAME_MAX)
+    parent_id: str | None = None  # None = direto na coleção (pasta principal)
+
+
+@router.post("/folders")
+async def create_folder(body: FolderIn, user: DashUser = Depends(require_editor)) -> dict:
+    return await folders.create_folder(_writer(user), body.collection, body.name, body.parent_id)
+
+
+class FolderPatch(BaseModel):
+    name: str = Field(min_length=1, max_length=folders.FOLDER_NAME_MAX)
+
+
+@router.patch("/folders/{folder_id}")
+async def rename_folder(folder_id: str, body: FolderPatch, user: DashUser = Depends(require_editor)) -> dict:
+    return await folders.rename_folder(_writer(user), folder_id, body.name)
+
+
+class FolderMoveIn(BaseModel):
+    collection: str
+    parent_id: str | None = None
+
+
+@router.post("/folders/{folder_id}/move")
+async def move_folder(folder_id: str, body: FolderMoveIn, user: DashUser = Depends(require_editor)) -> dict:
+    return await folders.move_folder(_writer(user), folder_id, body.collection, body.parent_id)
+
+
+@router.delete("/folders/{folder_id}")
+async def delete_folder(folder_id: str, user: DashUser = Depends(require_editor)) -> dict:
+    """Remove a pasta; o conteúdo sobe um nível (nada é apagado)."""
+    return await folders.delete_folder(_writer(user), folder_id)
 
 
 # ---------------------------------------------------------------- importação Obsidian (plan-web-13)

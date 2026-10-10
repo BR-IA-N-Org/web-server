@@ -2,17 +2,13 @@
 import { api } from "../api.js";
 import { t } from "../i18n.js";
 import { icon, loadIcons } from "../icons.js";
-import { escHtml, fmtDate, fmtAgo, modalShell, bindModal, uiConfirm, uiAlert, uiError } from "../ui.js";
+import { escHtml, fmtDate, fmtAgo, modalShell, bindModal, uiConfirm, uiAlert, uiError, disclosure } from "../ui.js";
 import { state, colorFor } from "../state.js";
+import { accessChips, accessPresetsHtml, scopesBlockHtml, bindAccessPicker, readScopes } from "../access.js";
 
 /* ---------------------------------------------------------------- tela: agents */
 
-const AGENT_SCOPES = [
-  ["read", "scope.read"],
-  ["write", "scope.write"],
-  ["agents:manage", "scope.agentsManageAgent"],
-  ["admin", "scope.admin"],
-];
+const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,62}$/;
 
 const slugify = (s) =>
   s
@@ -42,26 +38,25 @@ function buildSystemPrompt(f) {
   return parts.join("\n\n");
 }
 
+// Formulário em linguagem simples (quem é, como se comporta, o que pode acessar). Identificador, instruções
+// completas, escopos da API e autonomia ficam no "Ver mais" — slug e prompt são montados sozinhos.
 function agentCreateForm(collections) {
   return `
     ${modalShell({
       id: "agent",
       iconName: "bot",
       title: t("agents.new"),
-      subtitle: t("agents.newSub", { tool: '<span class="mono">create_agent</span>' }),
+      subtitle: t("agents.newSub"),
       submitLabel: t("agents.create"),
       submitIcon: "bot",
       body: `
       <div class="form-section">
         <div class="form-section-title"><span class="step">1</span>${t("agents.identity")}</div>
-        <div class="create-grid three">
+        <div class="create-grid">
           <label class="form-field">
             <span class="form-label">${t("common.name")}</span>
             <input class="input" id="a-name" placeholder="${t("agents.namePh")}" required />
-          </label>
-          <label class="form-field">
-            <span class="form-label">${t("agents.slug")} <span class="muted">${t("agents.slugHint")}</span></span>
-            <input class="input mono" id="a-slug" placeholder="${t("agents.slugPh")}" pattern="[a-z0-9][a-z0-9-]{1,62}" required />
+            <span class="form-help">${t("agents.nameHelp")}</span>
           </label>
           <label class="form-field">
             <span class="form-label">${t("agents.desc")}</span>
@@ -90,13 +85,6 @@ function agentCreateForm(collections) {
             <textarea class="input" id="a-never" rows="3" placeholder="${t("agents.neverPh")}"></textarea>
           </label>
         </div>
-        <label class="form-field">
-          <span class="form-label prompt-label">System prompt
-            <span class="muted" id="a-prompt-state">${t("agents.promptAuto")}</span>
-            <button class="link-btn hidden" type="button" id="a-prompt-regen">${t("agents.regen")}</button>
-          </span>
-          <textarea class="input mono prompt-box" id="a-prompt" rows="9" required></textarea>
-        </label>
       </div>
 
       <div class="form-section">
@@ -117,20 +105,30 @@ function agentCreateForm(collections) {
           }
         </div>
         <span class="form-label">${t("agents.permissions")}</span>
-        <div class="scope-grid" id="a-scopes">
-          ${AGENT_SCOPES.map(
-            ([s, desc]) => `
-            <label class="scope-option">
-              <input type="checkbox" value="${s}" ${s === "read" || s === "write" ? "checked" : ""} />
-              <span><span class="mono">${s}</span><span class="muted">${t(desc)}</span></span>
-            </label>`,
-          ).join("")}
-        </div>
+        ${accessPresetsHtml("a", "write")}
+      </div>
+
+      ${disclosure({
+        id: "agent-advanced",
+        hint: t("agents.advancedHint"),
+        body: `
+        <label class="form-field">
+          <span class="form-label">${t("agents.slug")} <span class="muted">${t("agents.slugHint")}</span></span>
+          <input class="input mono" id="a-slug" placeholder="${t("agents.slugPh")}" />
+        </label>
+        <label class="form-field">
+          <span class="form-label prompt-label">${t("agents.prompt")}
+            <span class="muted" id="a-prompt-state">${t("agents.promptAuto")}</span>
+            <button class="link-btn hidden" type="button" id="a-prompt-regen">${t("agents.regen")}</button>
+          </span>
+          <textarea class="input mono prompt-box" id="a-prompt" rows="9"></textarea>
+        </label>
+        ${scopesBlockHtml("a", ["read", "write"])}
         <label class="scope-option toggle-option">
           <input type="checkbox" id="a-auto" />
           <span><span>${t("agents.autonomy")}</span><span class="muted">${t("agents.autonomyDesc")}</span></span>
-        </label>
-      </div>`,
+        </label>`,
+      })}`,
     })}`;
 }
 
@@ -141,11 +139,11 @@ function agentCard(a, isAdmin) {
       <div class="agent-head">
         <span class="row-icon">${icon("bot")}</span>
         <div class="grow">
-          <div class="row-title">${escHtml(a.name)} <span class="muted mono">${escHtml(a.slug)}</span>
+          <div class="row-title">${escHtml(a.name)} <span class="chip subtle mono">${escHtml(a.slug)}</span>
             ${archived ? `<span class="chip danger-chip">${t("agents.archived")}</span>` : ""}
             ${a.proposals ? `<span class="chip accent">${icon("git-pull-request-arrow", 12)} ${t("agents.proposals", { count: a.proposals })}</span>` : ""}
           </div>
-          ${a.description ? `<div class="muted">${escHtml(a.description)}</div>` : ""}
+          ${a.description ? `<div class="agent-desc">${escHtml(a.description)}</div>` : ""}
         </div>
         ${
           isAdmin && !archived
@@ -157,7 +155,7 @@ function agentCard(a, isAdmin) {
         }
       </div>
       <div class="agent-meta">
-        <span>${a.scopes.map((s) => `<span class="chip ${s === "admin" ? "accent" : ""}">${s}</span>`).join(" ")}</span>
+        <span>${accessChips(a.scopes)}</span>
         <span>${
           a.allowed_collections.length
             ? a.allowed_collections.map((c) => `<span class="chip"><span class="dot" style="background:${colorFor(c)}"></span>${escHtml(c)}</span>`).join(" ")
@@ -250,6 +248,7 @@ function bindAgentCreate() {
     $("a-prompt-regen").classList.toggle("hidden", !v);
   };
   const setOpen = bindModal("agent", { trigger: $("agent-new"), onOpen: syncPrompt });
+  bindAccessPicker(form, "a");
 
   $("a-name").addEventListener("input", () => {
     if (!slugTouched) $("a-slug").value = slugify($("a-name").value);
@@ -266,10 +265,21 @@ function bindAgentCreate() {
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const scopes = [...form.querySelectorAll("#a-scopes input:checked")].map((i) => i.value);
+    const scopes = readScopes(form, "a");
     if (!scopes.length) {
       await uiAlert(t("agents.pickScopeTitle"), t("agents.pickScopeMsg"));
       return;
+    }
+    // slug e prompt vivem no "Ver mais" (fechado por padrão): validação manual, abrindo o bloco se precisar
+    if (!SLUG_RE.test($("a-slug").value.trim())) {
+      $("agent-advanced").open = true;
+      await uiAlert(t("agents.slugInvalidTitle"), t("agents.slugInvalidMsg"));
+      $("a-slug").focus();
+      return;
+    }
+    if (!$("a-prompt").value.trim()) {
+      setPromptTouched(false);
+      syncPrompt();
     }
     const f = fields();
     try {
