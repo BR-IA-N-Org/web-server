@@ -945,6 +945,149 @@ select option {
   margin-top: 6px;
 }
 
+/* ---------------------------------------------------------------- OAuth: tela "Autorizar aplicativo" (plan-web-17) */
+
+.consent-wrap {
+  height: auto;
+  min-height: 100vh;
+  background: var(--bg-frame);
+}
+
+.consent-card {
+  width: 460px;
+  gap: 10px;
+}
+
+.consent-badge {
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.consent-title {
+  margin: 4px 0 0;
+  font-size: 20px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.consent-intro {
+  text-align: center;
+  margin: 0;
+}
+
+.consent-return {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.consent-login {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.consent-login .muted {
+  margin: 0 0 4px;
+}
+
+.consent-who {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  font-size: 13px;
+}
+
+.consent-who .chip {
+  margin-left: 6px;
+}
+
+.consent-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.consent-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.consent-perm {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-body);
+  cursor: pointer;
+}
+
+.consent-perm + .consent-perm,
+.consent-cols {
+  border-top: 1px solid var(--border);
+}
+
+.consent-perm input {
+  margin-top: 3px;
+  accent-color: var(--accent);
+}
+
+.consent-cols {
+  max-height: 200px;
+  overflow-y: auto;
+  padding-left: 18px;
+}
+
+.consent-col span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.consent-note {
+  font-size: 12px;
+  margin: 0;
+}
+
+.consent-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.consent-actions .btn {
+  justify-content: center;
+}
+
+.consent-done {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 8px 0 0;
+}
+
 /* ---------------------------------------------------------------- listas, cards e formulários */
 
 .list {

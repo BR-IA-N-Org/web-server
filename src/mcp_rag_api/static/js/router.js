@@ -9,6 +9,7 @@ import { renderOverview, hideTip } from "./views/insights.js";
 import { graphTemplate, bindGraphControls, loadGraph, destroyGraph } from "./views/graph.js";
 import { searchTemplate, bindSearch, renderSearchResults } from "./views/search.js";
 import { renderKeysList } from "./views/keys.js";
+import { renderConnectionsList } from "./views/connections.js";
 import { renderAgentsList } from "./views/agents.js";
 import { renderUsersList } from "./views/users.js";
 import { closePanel } from "./views/docpanel.js";
@@ -58,6 +59,10 @@ async function renderScreen() {
     main.innerHTML = pageTemplate("key-round", t("keys.title"), t("keys.sub"));
     await loadIcons(main);
     await renderKeysList();
+  } else if (state.screen === "connections") {
+    main.innerHTML = pageTemplate("plug", t("connections.title"), t("connections.sub"));
+    await loadIcons(main);
+    await renderConnectionsList();
   } else if (state.screen === "agents") {
     main.innerHTML = pageTemplate("bot", t("agents.title"), t("agents.sub"));
     await loadIcons(main);
