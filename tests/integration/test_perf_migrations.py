@@ -105,7 +105,7 @@ async def test_run_migrations_concurrent_applies_once():
     assert sum("005_versions_created_at_idx.sql" in applied for applied in results) == 1
     async with db.pool().acquire() as conn:
         total = await conn.fetchval("SELECT count(*) FROM schema_migrations")
-    assert total == 6  # 001..006, sem duplicatas
+    assert total == 7  # 001..007, sem duplicatas
 
 
 async def test_resolve_key_throttles_last_used_at():
