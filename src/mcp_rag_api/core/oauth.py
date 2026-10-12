@@ -28,7 +28,7 @@ from mcp.server.auth.provider import (
 )
 from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 
-from ..config import get_settings, oauth_redirect_hosts
+from ..config import get_settings, oauth_redirect_hosts, oauth_redirect_schemes
 from ..db import pool
 from ..logging_config import get_logger
 from ..security import (
@@ -72,14 +72,23 @@ def _valid_resource(resource: str | None) -> bool:
 
 
 def redirect_allowed(uri: str) -> bool:
-    """https em host da allowlist (ou subdomínio dele) ou loopback http (Claude Code, Inspector)."""
+    """https em host da allowlist (ou subdomínio dele), loopback http (Claude Code, Inspector) ou
+    esquema de app nativo da allowlist (Cursor, VS Code)."""
     url = urlparse(uri)
-    host = (url.hostname or "").lower()
-    if url.scheme == "http":
+    scheme, host = url.scheme.lower(), (url.hostname or "").lower()
+    if scheme == "http":
         return host in ("localhost", "127.0.0.1", "::1")
-    if url.scheme != "https" or not host:
-        return False
-    return any(host == h or host.endswith("." + h) for h in oauth_redirect_hosts(get_settings()))
+    if scheme == "https":
+        return bool(host) and any(host == h or host.endswith("." + h) for h in oauth_redirect_hosts(get_settings()))
+    return scheme in oauth_redirect_schemes(get_settings())
+
+
+def redirect_label(uri: str) -> str | None:
+    """Para onde o app volta, como a tela mostra: o host (web) ou esquema://app (nativo)."""
+    url = urlparse(uri)
+    if url.scheme in ("http", "https"):
+        return url.hostname
+    return f"{url.scheme}://{url.netloc}" if url.scheme else None
 
 
 class ConciliumAuthCode(AuthorizationCode):
@@ -143,7 +152,8 @@ class ConciliumOAuthProvider(
             raise RegistrationError(
                 "invalid_redirect_uri",
                 f"redirect_uri não permitido neste servidor: {', '.join(refused)} "
-                "(aceitos: https nos hosts de OAUTH_REDIRECT_ALLOWLIST ou http://localhost).",
+                "(aceitos: https nos hosts de OAUTH_REDIRECT_ALLOWLIST, esquemas de OAUTH_REDIRECT_SCHEMES "
+                "ou http://localhost).",
             )
         # o cliente pode pedir no /authorize qualquer escopo do Concilium (o SDK valida contra este campo);
         # o que vale é o que a pessoa marca na tela
@@ -337,7 +347,7 @@ async def consent_info(request_id: str, user: DashUser | None) -> dict[str, Any]
     row = await _pending_request(request_id)
     info: dict[str, Any] = {
         "client_name": row["client_name"] or "Aplicativo MCP",
-        "redirect_host": urlparse(row["redirect_uri"]).hostname,
+        "redirect_host": redirect_label(row["redirect_uri"]),
         "requested_scopes": [s for s in row["scopes"] if s in OAUTH_SCOPES],
         "user": None,
     }
@@ -465,7 +475,7 @@ async def list_grants(user: DashUser, *, all_users: bool = False) -> list[dict[s
         {
             "id": str(r["id"]),
             "client_name": r["client_name"] or "Aplicativo MCP",
-            "redirect_host": urlparse(r["redirect_uris"][0]).hostname if r["redirect_uris"] else None,
+            "redirect_host": redirect_label(r["redirect_uris"][0]) if r["redirect_uris"] else None,
             "scopes": list(r["scopes"]),
             "collections": list(r["allowed_collections"]),
             "username": r["username"],

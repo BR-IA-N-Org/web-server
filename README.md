@@ -121,6 +121,16 @@ Prefer Docker? `Dockerfile.coolify` builds the production image. `docker-compose
 
 **Claude (claude.ai, Desktop, mobile)**: *Settings → Connectors → Add custom connector* with `https://your-domain/mcp`. Claude opens Concilium's **Authorize** screen: sign in with your dashboard account, pick what it can do (read, write, manage agents) and which folders it sees, then click Authorize. No key to copy; revoke anytime under **Connections** in the user menu.
 
+**ChatGPT**: *Plugins → create* (developer mode) with server URL `https://your-domain/mcp` and authentication **OAuth**; ChatGPT registers itself and opens the same Authorize screen.
+
+**Cursor / VS Code**: add `https://your-domain/mcp` as an HTTP MCP server; the editor opens the browser to authorize.
+
+<details>
+<summary>Which clients can connect via OAuth?</summary>
+
+Any client can register itself (dynamic client registration), but only if it sends users back to a trusted address: `https` on `OAUTH_REDIRECT_ALLOWLIST` (default `claude.ai, claude.com, chatgpt.com, openai.com, vscode.dev, mistral.ai`, subdomains included), a native app scheme on `OAUTH_REDIRECT_SCHEMES` (default `cursor, vscode, vscode-insiders`) or `http://localhost`. If a client fails with "configuration rejected", the server log shows `oauth: registro recusado (redirect fora da allowlist): [...]`: add that host (or scheme) to the variable and restart. Setting the variable **replaces** the default list, so keep the ones you still need.
+</details>
+
 **Claude Code**
 
 ```bash
