@@ -12,7 +12,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile
 from pydantic import BaseModel, Field
 
-from .core import agents, dash_auth, documents, folders, graph, links, obsidian_import, search
+from .core import agents, dash_auth, documents, folders, graph, links, oauth, obsidian_import, search
 from .core.dash_auth import DashUser
 from .core.documents import parse_uuid
 from .db import audit, pool, record, records
@@ -846,6 +846,7 @@ async def update_dash_user(user_id: str, body: DashUserPatch, admin: DashUser = 
     # sem isso um admin rebaixado a viewer seguiria operando com o papel antigo
     if body.disabled or body.password is not None or body.role is not None:
         await dash_auth.revoke_user_sessions(str(row["id"]))
+        await oauth.revoke_user_grants(str(row["id"]))  # e as conexões OAuth (Claude etc.)
     async with pool().acquire() as conn:
         await audit(
             conn,

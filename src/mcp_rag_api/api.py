@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from . import db
 from .config import get_settings
 from .core import agents, documents, folders, links, memory, search
-from .security import DEV_PRINCIPAL, PermissionDenied, Principal, bearer_token, resolve_key
+from .security import DEV_PRINCIPAL, PermissionDenied, Principal, bearer_token, resolve_bearer
 
 router = APIRouter()
 
@@ -18,7 +18,7 @@ async def principal(authorization: str | None = Header(default=None)) -> Princip
     token = bearer_token(authorization)
     if token:
         async with db.pool().acquire() as conn:
-            return await resolve_key(conn, token)
+            return await resolve_bearer(conn, token)
     if get_settings().kb_auth_disabled:
         return DEV_PRINCIPAL
     raise PermissionDenied("Autenticação necessária: Authorization: Bearer <chave>.")

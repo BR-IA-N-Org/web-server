@@ -119,9 +119,15 @@ Prefere Docker? O `Dockerfile.coolify` gera a imagem de produção. O `docker-co
 
 ## Conectar seus agentes
 
+**Claude (claude.ai, Desktop, celular)**: *Configurações → Conectores → Adicionar conector personalizado* com `https://seu-dominio/mcp`. O Claude abre a tela **Autorizar** do Concilium: entre com sua conta da dashboard, marque o que ele pode fazer (consultar, escrever, gerenciar agentes) e quais pastas vê, e clique em Autorizar. Nada de copiar chave; revogue quando quiser em **Conexões**, no menu do usuário.
+
 **Claude Code**
 
 ```bash
+# OAuth: abre o navegador para autorizar (se não abrir, rode /mcp dentro do Claude Code)
+claude mcp add --transport http concilium https://seu-dominio/mcp
+
+# ou com chave de API
 claude mcp add --transport http concilium http://localhost:8000/mcp \
   --header "Authorization: Bearer kb_sk_SUA_CHAVE"
 ```

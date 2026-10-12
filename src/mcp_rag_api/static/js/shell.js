@@ -69,6 +69,7 @@ function renderUserFooter() {
       </div>
       <div class="menu-sep"></div>
       ${item('data-goto="keys"', "key-round", t("menu.keys"))}
+      ${item('data-goto="connections"', "plug", t("menu.connections"))}
       ${isAdmin ? item('data-goto="users"', "users", t("menu.users")) : ""}
       <div class="menu-sep"></div>
       ${item("data-theme-toggle", currentTheme() === "dark" ? "sun" : "moon", currentTheme() === "dark" ? t("menu.lightTheme") : t("menu.darkTheme"))}
