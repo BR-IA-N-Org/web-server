@@ -57,13 +57,14 @@ async def _sync_agents(out_dir: Path) -> list[Path]:
 
 
 async def _cleanup() -> dict:
-    from .core import dash_auth
+    from .core import dash_auth, oauth
     from .core.memory import cleanup_memories
 
     await db.init_pool()
     try:
         result = await cleanup_memories()
         result.update(await dash_auth.cleanup_sessions())
+        result.update(await oauth.cleanup())
         return result
     finally:
         await db.close_pool()

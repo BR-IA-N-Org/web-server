@@ -119,9 +119,15 @@ Prefer Docker? `Dockerfile.coolify` builds the production image. `docker-compose
 
 ## Connect your agents
 
+**Claude (claude.ai, Desktop, mobile)**: *Settings → Connectors → Add custom connector* with `https://your-domain/mcp`. Claude opens Concilium's **Authorize** screen: sign in with your dashboard account, pick what it can do (read, write, manage agents) and which folders it sees, then click Authorize. No key to copy; revoke anytime under **Connections** in the user menu.
+
 **Claude Code**
 
 ```bash
+# OAuth: opens the browser to authorize (run /mcp inside Claude Code if it doesn't)
+claude mcp add --transport http concilium https://your-domain/mcp
+
+# or with an API key
 claude mcp add --transport http concilium http://localhost:8000/mcp \
   --header "Authorization: Bearer kb_sk_YOUR_KEY"
 ```

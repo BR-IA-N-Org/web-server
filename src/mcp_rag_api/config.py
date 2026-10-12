@@ -2,6 +2,7 @@ from functools import lru_cache
 from importlib.resources import files
 from pathlib import Path
 from typing import Literal
+from urllib.parse import urlparse
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -50,6 +51,14 @@ class Settings(BaseSettings):
     # 0 desliga o rate limit (só para dev/testes controlados).
     dash_login_rate_limit: int = 5
 
+    # OAuth do MCP (plan-web-17): clientes como o Claude conectam pela tela "Autorizar", sem copiar chave.
+    # O issuer é o PUBLIC_URL (https em produção; http só em localhost).
+    oauth_enabled: bool = True
+    oauth_access_ttl_minutes: int = Field(default=60, gt=0)
+    oauth_refresh_ttl_days: int = Field(default=30, gt=0)
+    # hosts https aceitos como redirect_uri no registro dinâmico (loopback http sempre aceito)
+    oauth_redirect_allowlist: str = "claude.ai,claude.com"
+
     kb_log_level: str = "INFO"
     # tempo de vida das sessões da dashboard, em horas (padrão: 7 dias)
     dash_session_ttl_hours: int = Field(default=168, gt=0)
@@ -67,6 +76,22 @@ class Settings(BaseSettings):
         if self.chunk_overlap_words >= self.chunk_words:
             raise ValueError("CHUNK_OVERLAP_WORDS deve ser menor que CHUNK_WORDS")
         return self
+
+
+def oauth_redirect_hosts(s: Settings) -> set[str]:
+    return {h.strip().lower() for h in s.oauth_redirect_allowlist.split(",") if h.strip()}
+
+
+def oauth_issue() -> str | None:
+    """Motivo pelo qual o OAuth não pode subir (None = pode). O SDK exige issuer https,
+    exceto em localhost/127.0.0.1."""
+    s = get_settings()
+    if not s.oauth_enabled:
+        return "OAUTH_ENABLED=false"
+    url = urlparse(s.public_url)
+    if url.scheme == "https" or (url.scheme == "http" and url.hostname in ("localhost", "127.0.0.1")):
+        return None
+    return f"PUBLIC_URL={s.public_url} não é https: OAuth do MCP desligado"
 
 
 @lru_cache
@@ -93,6 +118,8 @@ def check_config() -> list[str]:
     warnings: list[str] = []
     if s.public_url == "http://localhost:8000":
         warnings.append("PUBLIC_URL é o padrão http://localhost:8000 — defina a URL pública em produção")
+    if s.oauth_enabled and (issue := oauth_issue()):
+        warnings.append(issue)
     if s.kb_auth_disabled:
         warnings.append("KB_AUTH_DISABLED=true: AUTENTICAÇÃO DESLIGADA — use apenas em desenvolvimento!")
     return warnings

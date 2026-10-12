@@ -13,14 +13,15 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from . import db
 from .api import router
-from .config import EMBEDDING_DIM, check_config, get_settings
+from .config import EMBEDDING_DIM, check_config, get_settings, oauth_issue
 from .core.dash_auth import DashUser
 from .core.embeddings import close_embedder, get_embedder
 from .dashboard_api import auth_router, current_user
 from .dashboard_api import router as dashboard_router
 from .logging_config import get_logger, setup_logging
 from .mcp_server import mcp
-from .security import KBError, NotFound, PermissionDenied, VersionConflict, bearer_token, resolve_key
+from .oauth_api import consent_router, grants_router, protocol_routes
+from .security import KBError, NotFound, PermissionDenied, VersionConflict, bearer_token, resolve_bearer
 
 logger = get_logger()
 
@@ -50,6 +51,8 @@ def _log_boot_summary() -> None:
     """Resumo de config no boot: provider, dim, auth, TTL da dash — nunca segredos."""
     s = get_settings()
     auth_mode = "DESABILITADA" if s.kb_auth_disabled else "api_keys (bearer)"
+    if not s.kb_auth_disabled:
+        auth_mode += " + oauth" if OAUTH_ACTIVE else ""
     logger.info(
         "boot: embedding_provider=%s embedding_dim=%d auth=%s dash_session_ttl=%dh public_url=%s",
         s.embedding_provider,
@@ -87,6 +90,15 @@ app = FastAPI(
 app.include_router(router)
 app.include_router(auth_router)
 app.include_router(dashboard_router)
+
+# OAuth do MCP (plan-web-17): o cliente descobre pelo 401 do /mcp (resource_metadata) e conecta pela
+# tela "Autorizar". Decidido no import: PUBLIC_URL precisa ser https (ou localhost) — ver oauth_issue().
+OAUTH_ACTIVE = oauth_issue() is None
+RESOURCE_METADATA_URL = get_settings().public_url.rstrip("/") + "/.well-known/oauth-protected-resource/mcp"
+if OAUTH_ACTIVE:
+    app.router.routes.extend(protocol_routes())
+    app.include_router(consent_router)
+    app.include_router(grants_router)
 
 # Headers de segurança em toda resposta. A CSP assume que a dash carrega tudo de
 # self/vendored (scripts e estilos locais; o Toast UI injeta <style> inline, por isso
@@ -142,8 +154,8 @@ async def unhandled_error_handler(request: Request, exc: Exception) -> JSONRespo
     return JSONResponse(status_code=500, content={"detail": "Erro interno do servidor."})
 
 
-class RequireApiKey:
-    """Barra o /mcp inteiro (inclusive initialize e list_tools) sem uma chave válida.
+class RequireBearer:
+    """Barra o /mcp inteiro (inclusive initialize e list_tools) sem chave de API ou token OAuth válido.
 
     Cada tool ainda resolve a chave e confere escopos; isto é só o portão, para que um servidor
     exposto na internet não revele nem a lista de tools a quem não tem chave.
@@ -163,15 +175,21 @@ class RequireApiKey:
                         # Guarda o Principal no scope para as tools do /mcp reutilizarem (evita resolver
                         # a mesma chave 2× por request). Não é cache entre requests: cada request
                         # re-resolve no portão, então revogação continua imediata.
-                        scope["kb.principal"] = await resolve_key(conn, token)
+                        scope["kb.principal"] = await resolve_bearer(conn, token)
                     valid = True
                 except PermissionDenied:
                     pass
             if not valid:
+                # com OAuth ligado, o resource_metadata é o que faz o Claude abrir a tela "Autorizar"
+                challenge = "Bearer"
+                if OAUTH_ACTIVE:
+                    challenge += f' resource_metadata="{RESOURCE_METADATA_URL}"'
+                    if token:
+                        challenge += ', error="invalid_token"'
                 response = JSONResponse(
-                    {"detail": "Chave de API ausente, inválida ou revogada."},
+                    {"detail": "Chave de API ou token ausente, inválido ou revogado."},
                     status_code=401,
-                    headers={"WWW-Authenticate": "Bearer"},
+                    headers={"WWW-Authenticate": challenge},
                 )
                 await response(scope, receive, send)
                 return
@@ -227,4 +245,4 @@ if VERSIONED_STATIC_PREFIX is not None:
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # Montado por último: as rotas REST têm prioridade; /mcp cai no app do MCP.
-app.mount("/", RequireApiKey(mcp_app))
+app.mount("/", RequireBearer(mcp_app))

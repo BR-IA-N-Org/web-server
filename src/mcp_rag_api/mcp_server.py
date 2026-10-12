@@ -13,7 +13,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from . import db
 from .config import get_settings
 from .core import agents, documents, folders, links, memory, search
-from .security import DEV_PRINCIPAL, KBError, PermissionDenied, Principal, bearer_token, resolve_key
+from .security import DEV_PRINCIPAL, KBError, PermissionDenied, Principal, bearer_token, resolve_bearer
 
 INSTRUCTIONS = """\
 Base de conhecimento compartilhada + registro de agentes.
@@ -53,7 +53,7 @@ async def current_principal(ctx: Context) -> Principal:
     except ValueError:
         pass
     if request is not None:  # HTTP
-        # O portão (RequireApiKey, em main.py) já resolveu esta chave neste request: reutiliza.
+        # O portão (RequireBearer, em main.py) já resolveu esta chave/token neste request: reutiliza.
         principal = request.scope.get("kb.principal")
         if principal is not None:
             return principal
@@ -62,7 +62,7 @@ async def current_principal(ctx: Context) -> Principal:
         token = settings.kb_api_key or None
     if token:
         async with db.pool().acquire() as conn:
-            return await resolve_key(conn, token)
+            return await resolve_bearer(conn, token)
     if settings.kb_auth_disabled:
         return DEV_PRINCIPAL
     raise PermissionDenied("Autenticação necessária: envie 'Authorization: Bearer <chave>' (ou KB_API_KEY no stdio).")
