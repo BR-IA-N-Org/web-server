@@ -119,9 +119,15 @@ uv run mcp-rag-api create-key --label yo --scopes admin
 
 ## Conecta tus agentes
 
+**Claude (claude.ai, Desktop, móvil)**: *Configuración → Conectores → Agregar conector personalizado* con `https://tu-dominio/mcp`. Claude abre la pantalla **Autorizar** de Concilium: inicia sesión con tu cuenta del dashboard, marca lo que puede hacer (consultar, escribir, gestionar agentes) y qué carpetas ve, y haz clic en Autorizar. Sin copiar claves; revoca cuando quieras en **Conexiones**, en el menú de usuario.
+
 **Claude Code**
 
 ```bash
+# OAuth: abre el navegador para autorizar (si no se abre, ejecuta /mcp dentro de Claude Code)
+claude mcp add --transport http concilium https://tu-dominio/mcp
+
+# o con una clave de API
 claude mcp add --transport http concilium http://localhost:8000/mcp \
   --header "Authorization: Bearer kb_sk_TU_CLAVE"
 ```
