@@ -121,6 +121,16 @@ uv run mcp-rag-api create-key --label yo --scopes admin
 
 **Claude (claude.ai, Desktop, móvil)**: *Configuración → Conectores → Agregar conector personalizado* con `https://tu-dominio/mcp`. Claude abre la pantalla **Autorizar** de Concilium: inicia sesión con tu cuenta del dashboard, marca lo que puede hacer (consultar, escribir, gestionar agentes) y qué carpetas ve, y haz clic en Autorizar. Sin copiar claves; revoca cuando quieras en **Conexiones**, en el menú de usuario.
 
+**ChatGPT**: *Plugins → crear* (modo desarrollador) con la URL del servidor `https://tu-dominio/mcp` y autenticación **OAuth**; ChatGPT se registra solo y abre la misma pantalla Autorizar.
+
+**Cursor / VS Code**: agrega `https://tu-dominio/mcp` como servidor MCP HTTP; el editor abre el navegador para autorizar.
+
+<details>
+<summary>¿Qué clientes pueden conectarse por OAuth?</summary>
+
+Cualquier cliente puede registrarse solo (registro dinámico), pero solo si devuelve a la persona a una dirección de confianza: `https` en `OAUTH_REDIRECT_ALLOWLIST` (por defecto `claude.ai, claude.com, chatgpt.com, openai.com, vscode.dev, mistral.ai`, subdominios incluidos), un esquema de app nativa en `OAUTH_REDIRECT_SCHEMES` (por defecto `cursor, vscode, vscode-insiders`) o `http://localhost`. Si un cliente falla con "configuración rechazada", el log del servidor muestra `oauth: registro recusado (redirect fora da allowlist): [...]`: agrega ese host (o esquema) a la variable y reinicia. Definir la variable **reemplaza** la lista por defecto, así que repite los que aún necesites.
+</details>
+
 **Claude Code**
 
 ```bash
