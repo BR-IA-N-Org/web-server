@@ -842,6 +842,28 @@ select option {
   flex: 1;
 }
 
+/* painel largo (setinha no cabeçalho): mais espaço para ler o documento; o grafo ao lado se reajusta */
+.panel {
+  transition: width 0.18s ease, flex-basis 0.18s ease;
+}
+
+.panel.wide {
+  width: min(780px, 62vw);
+  flex-basis: min(780px, 62vw);
+}
+
+.panel.wide .doc-content {
+  max-height: none;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    transition: none;
+  }
+}
+
 .panel .section {
   border-top: 1px solid var(--border);
   padding-top: 12px;

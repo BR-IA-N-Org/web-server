@@ -597,6 +597,8 @@ window.I18N.es = {
 
   // painel do documento e links
   "doc.loadFailed": "No se pudo cargar el documento.",
+  "doc.expandPanel": "Expandir el panel",
+  "doc.collapsePanel": "Contraer el panel",
   "doc.version": "Versión",
   "doc.active": "activo",
   "doc.archived": "archivado",
