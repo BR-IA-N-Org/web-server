@@ -1,5 +1,6 @@
 /* Bootstrap da dashboard — login, observers e inicialização. Módulo de entrada. */
 import { api } from "./api.js";
+import { syncFavicon } from "./brand.js";
 import { t } from "./i18n.js";
 import { icon, loadIcons } from "./icons.js";
 import { brandLogo, enhancePasswordFields } from "./ui.js";
@@ -82,6 +83,8 @@ new MutationObserver((mutations) => {
 }).observe(document.body, { childList: true, subtree: true });
 
 /* ---------------------------------------------------------------- boot */
+
+syncFavicon(); // ícone da aba na cor do tema aplicado pelo boot.js
 
 (async function boot() {
   try {

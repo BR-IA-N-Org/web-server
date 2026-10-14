@@ -5,13 +5,14 @@ import { icon, loadIcons } from "../icons.js";
 import { escHtml, fmtDate, debounce, modalShell, bindModal, uiConfirm, uiAlert, uiError } from "../ui.js";
 import { state, colorFor } from "../state.js";
 import { emit } from "../events.js";
+import { loaderHtml } from "../loader.js";
 
 /* ---------------------------------------------------------------- painel do documento */
 
 async function openDocumentPanel(docId) {
   const panel = document.getElementById("panel");
   panel.classList.remove("hidden");
-  panel.innerHTML = `<div class="muted">${t("common.loading")}</div>`;
+  panel.innerHTML = `<div class="cl-pad">${loaderHtml(t("common.loading"), "sm")}</div>`;
   let doc, docLinks;
   try {
     [doc, docLinks] = await Promise.all([
