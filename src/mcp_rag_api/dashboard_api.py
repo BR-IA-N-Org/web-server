@@ -308,6 +308,24 @@ async def create_collection(body: CollectionIn, user: DashUser = Depends(require
     return await documents.create_collection(_writer(user), body.name, body.description)
 
 
+class CollectionRenameIn(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+
+
+@router.patch("/collections/{name}")
+async def rename_collection(name: str, body: CollectionRenameIn, user: DashUser = Depends(require_admin)) -> dict:
+    """Renomeia a pasta principal (plan-web-18) — ação de admin."""
+    admin = Principal(actor=f"dash:{user.username}", scopes=frozenset({"admin"}))
+    return await folders.rename_collection(admin, name, body.name)
+
+
+@router.delete("/collections/{name}")
+async def delete_collection(name: str, user: DashUser = Depends(require_admin)) -> dict:
+    """Exclui a pasta principal sem notas ativas (plan-web-18) — ação de admin, irreversível."""
+    admin = Principal(actor=f"dash:{user.username}", scopes=frozenset({"admin"}))
+    return await folders.delete_collection(admin, name)
+
+
 # ---------------------------------------------------------------- pastas aninhadas (plan-web-14)
 
 

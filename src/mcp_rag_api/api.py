@@ -171,6 +171,22 @@ async def create_collection(body: CollectionIn, p: Principal = Auth) -> dict:
     return await documents.create_collection(p, body.name, body.description)
 
 
+class CollectionRenameIn(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+
+
+@router.patch("/collections/{name}")
+async def rename_collection(name: str, body: CollectionRenameIn, p: Principal = Auth) -> dict:
+    """Renomeia a coleção (escopo admin); leva o nome novo para as listas de acesso restrito."""
+    return await folders.rename_collection(p, name, body.name)
+
+
+@router.delete("/collections/{name}")
+async def delete_collection(name: str, p: Principal = Auth) -> dict:
+    """Exclui a coleção sem notas ativas (escopo admin) — irreversível."""
+    return await folders.delete_collection(p, name)
+
+
 @router.get("/folders")
 async def list_folders(collection: str | None = None, p: Principal = Auth) -> list[dict]:
     return await folders.list_folders(p, collection)
