@@ -1,5 +1,6 @@
 /* Helpers de UI — escape, datas, debounce, moldura de modal, diálogos e campos de senha. */
 import { t, locale } from "./i18n.js";
+import { brandSvg } from "./brand.js";
 import { icon, loadIcons } from "./icons.js";
 
 const escHtml = (s) =>
@@ -145,8 +146,8 @@ const uiConfirm = (opts) => uiDialog({ cancelLabel: t("common.cancel"), ...opts 
 const uiAlert = (title, message) => uiDialog({ title, message });
 const uiError = (title, err) => uiDialog({ title, message: err?.detail || err?.message || String(err), tone: "danger" });
 
-// logo da marca (static/brand/logo.svg); é imagem, não ícone Lucide: não herda currentColor
-const brandLogo = (size = 22) => `<img class="brand-logo" src="static/brand/logo.svg" width="${size}" height="${size}" alt="" />`;
+// personagem da marca em SVG inline: pinta com a cor de destaque do tema (.brand-logo { color: var(--accent) })
+const brandLogo = (size = 22) => brandSvg("currentColor", `class="brand-logo" width="${size}" height="${size}" aria-hidden="true" focusable="false"`);
 
 /* ---------------------------------------------------------------- campos de senha: botão de mostrar/ocultar */
 

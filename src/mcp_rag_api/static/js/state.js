@@ -28,11 +28,29 @@ const state = {
   showSemantic: true, // grafo: mostrar arestas de similaridade além dos links explícitos
 };
 
+// paleta das coleções: o tema pode trocar (--collection-palette, ex.: preto e branco em tons de cinza);
+// lida sob demanda e zerada a cada troca de tema (resetCollectionColors)
+let collectionPalette = null;
+
+function currentCollectionPalette() {
+  if (!collectionPalette) {
+    const custom = getComputedStyle(document.documentElement).getPropertyValue("--collection-palette").trim();
+    collectionPalette = custom ? custom.split(/\s*,\s*/) : PALETTE;
+  }
+  return collectionPalette;
+}
+
 function colorFor(collection) {
   if (!state.colors.has(collection)) {
-    state.colors.set(collection, PALETTE[state.colors.size % PALETTE.length]);
+    const palette = currentCollectionPalette();
+    state.colors.set(collection, palette[state.colors.size % palette.length]);
   }
   return state.colors.get(collection);
+}
+
+function resetCollectionColors() {
+  collectionPalette = null;
+  state.colors.clear();
 }
 
 // localStorage pode falhar (aba privada, bloqueio): rascunho é conveniência, nunca obrigatório
@@ -60,4 +78,4 @@ const store = {
   },
 };
 
-export { state, colorFor, store };
+export { state, colorFor, resetCollectionColors, store };
