@@ -14,7 +14,7 @@ import asyncpg
 from ..db import audit, pool, records
 from ..security import KBError, NotFound, Principal
 from . import documents
-from .documents import parse_uuid
+from .documents import parse_uuid, validate_collection_name
 
 FOLDER_NAME_MAX = 120
 PATH_SEP = "/"  # caminho de pastas na API/MCP: "Secretaria de Educação/Reuniões/2026"
@@ -206,6 +206,89 @@ async def delete_folder(p: Principal, folder_id: str) -> dict:
         "moved_folders": int(moved_folders.split()[-1]),
         "moved_notes": int(moved_notes.split()[-1]),
     }
+
+
+# ---------------------------------------------------------------- pasta principal (plan-web-18)
+# Agentes e acessos OAuth guardam as coleções permitidas por NOME (lista vazia = todas): renomear
+# atualiza essas listas na mesma transação, e excluir é recusado enquanto alguém estiver restrito à
+# coleção — tirar o nome da lista transformaria "só esta coleção" em "todas".
+
+
+async def rename_collection(p: Principal, name: str, new_name: str) -> dict:
+    """Renomeia a pasta principal (coleção) e leva o nome novo para quem tem acesso restrito a ela."""
+    p.require("admin")
+    new_name = validate_collection_name(new_name)
+    async with pool().acquire() as conn, conn.transaction():
+        cid = await _collection(conn, p, name)
+        if new_name == name:
+            return {"name": name, "renamed": False}
+        if await conn.fetchval("SELECT 1 FROM collections WHERE name = $1 AND id <> $2", new_name, cid):
+            raise KBError(f"Já existe uma pasta principal chamada '{new_name}'.")
+        await conn.execute("UPDATE collections SET name = $2 WHERE id = $1", cid, new_name)
+        agents_updated = await conn.execute(
+            "UPDATE agents SET allowed_collections = array_replace(allowed_collections, $1, $2) "
+            "WHERE $1 = ANY(allowed_collections)",
+            name,
+            new_name,
+        )
+        grants_updated = await conn.execute(
+            "UPDATE oauth_grants SET allowed_collections = array_replace(allowed_collections, $1, $2) "
+            "WHERE $1 = ANY(allowed_collections)",
+            name,
+            new_name,
+        )
+        await audit(conn, p.actor, "collection.rename", str(cid), old=name, new=new_name)
+    return {
+        "name": new_name,
+        "renamed": True,
+        "agents_updated": int(agents_updated.split()[-1]),
+        "grants_updated": int(grants_updated.split()[-1]),
+    }
+
+
+async def delete_collection(p: Principal, name: str) -> dict:
+    """Exclui a pasta principal (coleção) — irreversível.
+
+    Só sem notas ativas (o resto — notas arquivadas, versões, pastas — vai junto, em cascata no banco)
+    e só quando nenhum agente ativo ou acesso OAuth vigente está restrito a ela.
+    """
+    p.require("admin")
+    async with pool().acquire() as conn, conn.transaction():
+        cid = await _collection(conn, p, name)
+        await _lock_collection(conn, cid)
+        active = await conn.fetchval(
+            "SELECT count(*) FROM documents WHERE collection_id = $1 AND status = 'active'", cid
+        )
+        if active:
+            raise KBError(
+                f"A pasta principal '{name}' ainda tem {active} nota(s) ativa(s). Arquive ou mova antes de excluir."
+            )
+        agents_using = [
+            r["slug"]
+            for r in await conn.fetch(
+                "SELECT slug FROM agents WHERE status = 'active' AND $1 = ANY(allowed_collections) ORDER BY slug", name
+            )
+        ]
+        grants_using = await conn.fetchval(
+            "SELECT count(*) FROM oauth_grants WHERE revoked_at IS NULL AND $1 = ANY(allowed_collections)", name
+        )
+        if agents_using or grants_using:
+            who = []
+            if agents_using:
+                who.append("agentes " + ", ".join(agents_using))
+            if grants_using:
+                who.append(f"{grants_using} acesso(s) OAuth")
+            raise KBError(
+                f"A pasta principal '{name}' é a área permitida de {' e '.join(who)}. "
+                "Tire-a do acesso deles antes de excluir."
+            )
+        archived = await conn.fetchval("SELECT count(*) FROM documents WHERE collection_id = $1", cid)
+        folder_count = await conn.fetchval("SELECT count(*) FROM folders WHERE collection_id = $1", cid)
+        await conn.execute("DELETE FROM collections WHERE id = $1", cid)
+        await audit(
+            conn, p.actor, "collection.delete", str(cid), name=name, archived_notes=archived, folders=folder_count
+        )
+    return {"deleted": True, "name": name, "archived_notes_deleted": archived, "folders_deleted": folder_count}
 
 
 async def place_document(p: Principal, document_id: str, folder_id: str | None) -> dict:

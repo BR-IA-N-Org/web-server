@@ -284,7 +284,12 @@ async function openFolderMenu(btn) {
            ${item("move", "folder-input", t("folders.move"))}
            <div class="menu-sep"></div>
            ${item("delete", "trash-2", t("folders.delete"), "danger")}`
-        : ""
+        : state.user?.role === "admin"
+          ? `<div class="menu-sep"></div>
+             ${item("rename-collection", "pencil", t("collections.rename"))}
+             <div class="menu-sep"></div>
+             ${item("delete-collection", "trash-2", t("collections.delete"), "danger")}`
+          : ""
     }`;
   document.body.appendChild(menu);
   await loadIcons(menu);
@@ -300,6 +305,8 @@ async function openFolderMenu(btn) {
     else if (action === "rename") openRenameFolderModal(folderId);
     else if (action === "move") openMoveFolderModal(folderId);
     else if (action === "delete") deleteFolder(folderId);
+    else if (action === "rename-collection") openRenameCollectionModal(collection);
+    else if (action === "delete-collection") deleteCollection(collection);
   });
   // fase de captura: o clique que abriu o menu já passou; o próximo fora dele fecha
   document.addEventListener("click", folderMenuOutside, true);
@@ -766,6 +773,64 @@ async function openRenameFolderModal(folderId) {
   });
   setOpen(true);
   modal.querySelector("#fr-name").select();
+}
+
+// pasta principal (coleção) — plan-web-18, só admin
+async function openRenameCollectionModal(collection) {
+  document.getElementById("collection-rename-modal")?.remove();
+  const holder = document.createElement("div");
+  holder.innerHTML = modalShell({
+    id: "collection-rename",
+    iconName: "pencil",
+    title: t("collections.rename"),
+    subtitle: escHtml(collection),
+    submitLabel: t("notes.save"),
+    submitIcon: "check",
+    width: 480,
+    body: `
+      <label class="form-field">
+        <span class="form-label">${t("common.name")}</span>
+        <input class="input" id="cr-name" value="${escHtml(collection)}" maxlength="80" required />
+      </label>
+      <p class="muted">${t("collections.renameHint")}</p>`,
+  });
+  document.body.appendChild(holder.firstElementChild);
+  const modal = document.getElementById("collection-rename-modal");
+  await loadIcons(modal);
+  const setOpen = bindModal("collection-rename");
+  modal.querySelector("#collection-rename-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    try {
+      const res = await api.patch(`/collections/${encodeURIComponent(collection)}`, {
+        name: modal.querySelector("#cr-name").value.trim(),
+      });
+      setOpen(false);
+      modal.remove();
+      if (notes.current?.collection === collection) notes.current.collection = res.name;
+      await loadNotesTree();
+      if (notes.current) renderNoteMeta();
+    } catch (err) {
+      await uiError(t("collections.renameFailed"), err);
+    }
+  });
+  setOpen(true);
+  modal.querySelector("#cr-name").select();
+}
+
+async function deleteCollection(collection) {
+  const ok = await uiConfirm({
+    title: t("collections.deleteTitle"),
+    message: t("collections.deleteMsg", { name: collection }),
+    confirmLabel: t("collections.delete"),
+    tone: "danger",
+  });
+  if (!ok) return;
+  try {
+    await api.del(`/collections/${encodeURIComponent(collection)}`);
+    await loadNotesTree();
+  } catch (err) {
+    await uiError(t("collections.deleteFailed"), err);
+  }
 }
 
 async function openMoveFolderModal(folderId) {
