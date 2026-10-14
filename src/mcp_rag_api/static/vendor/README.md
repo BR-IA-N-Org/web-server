@@ -51,3 +51,14 @@ Nada aqui passa por build; cada entrada registra origem e versão exata.
 - **Uso:** documentação da API em `/dash/docs`. Local por causa da CSP (`script-src 'self'`): o
   `get_swagger_ui_html` padrão do FastAPI carrega do CDN e inicializa com `<script>` inline, o que
   deixava a página em branco. A inicialização fica em `static/js/swagger-init.js`.
+
+## 3d-force-graph/
+
+- **Arquivo:** `3d-force-graph.min.js` (+ `LICENSE`) — bundle UMD que já embute o three.js
+- **Versão:** `3d-force-graph@1.80.1`
+- **Origem:** `https://cdn.jsdelivr.net/npm/3d-force-graph@1.80.1/dist/3d-force-graph.min.js`
+- **Licença:** MIT (ver `LICENSE`)
+- **Uso:** modo 3D do grafo (plan-web-19). Carregado sob demanda (só quando a pessoa escolhe 3D),
+  por isso não entra no `dashboard.html`. Usa o motor de física d3 (padrão), igual ao 2D: o bundle
+  também traz o `ngraph.forcelayout`, que gera código com `new Function` e seria barrado pela CSP
+  (`script-src 'self'`, sem `unsafe-eval`) — **não ligar `forceEngine('ngraph')`**.

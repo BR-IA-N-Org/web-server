@@ -12,6 +12,7 @@ const state = {
   k: 5,
   colors: new Map(),
   graphInstance: null,
+  graphInstanceMode: null, // modo ("2d" | "3d") da instância viva — troca de modo recria
   graphObserver: null,
   graphNeedsFit: false,
   hoverNode: null,
@@ -26,6 +27,8 @@ const state = {
   connectMode: false, // grafo: modo "clique na origem e no destino"
   connectFrom: null, // nó de origem escolhido no modo conectar
   showSemantic: true, // grafo: mostrar arestas de similaridade além dos links explícitos
+  graphMode: "2d", // grafo: "2d" (canvas) | "3d" (WebGL, carregado sob demanda)
+  linkScale: 1, // grafo: multiplicador da espessura das arestas (0.3–3)
 };
 
 // paleta das coleções: o tema pode trocar (--collection-palette, ex.: preto e branco em tons de cinza);
