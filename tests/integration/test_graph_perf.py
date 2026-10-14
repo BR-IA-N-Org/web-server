@@ -69,7 +69,7 @@ async def test_documents_level_matches_old_pgvector_query(base_docs, k, min_sim)
 async def test_cache_reuses_and_invalidates(base_docs):
     graph.clear_cache()
     first = await graph.build_graph("documents", COLLECTION, 0.0, 3)
-    key = ("documents", COLLECTION)
+    key = ("documents", COLLECTION, None)  # (nível, coleção, pastas)
     cached = graph._cache[key]
     await graph.build_graph("documents", COLLECTION, 0.4, 2)  # outro slider: mesmo cálculo, só filtra
     assert graph._cache[key] is cached

@@ -492,9 +492,13 @@ window.I18N["pt-BR"] = {
   "health.people": "{count} pessoa(s) com acesso",
 
   // grafo
+  "picker.label": "Local",
+  "picker.all": "Toda a base",
+  "picker.search": "Buscar pasta…",
+  "picker.empty": "Nenhuma pasta encontrada.",
+  "picker.failed": "Não foi possível carregar as pastas.",
+  "search.scope": "Procurar em",
   "graph.title": "Grafo da base",
-  "graph.collection": "Collection",
-  "graph.all": "Todas",
   "graph.similarity": "Similaridade ≥",
   "graph.documents": "Documentos",
   "graph.chunks": "Chunks",

@@ -9,6 +9,7 @@ from fastapi import Depends, FastAPI, Request, Response
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.gzip import GZipMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from . import db
@@ -115,6 +116,25 @@ SECURITY_HEADERS = {
         "connect-src 'self'"
     ),
 }
+
+
+class GzipDashApi:
+    """Comprime só as respostas da API da dash (JSON do grafo ~1,6 MB e da árvore de notas ~450 KB com
+    ~2 mil notas; com gzip ~6×menores no trecho servidor → Cloudflare). O /mcp faz streaming e os
+    estáticos já saem comprimidos pelo Cloudflare: ficam de fora (plan-web-24)."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+        self.gzip = GZipMiddleware(app, minimum_size=1024)
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http" and scope["path"].startswith("/dash/api/"):
+            await self.gzip(scope, receive, send)
+            return
+        await self.app(scope, receive, send)
+
+
+app.add_middleware(GzipDashApi)
 
 
 @app.middleware("http")

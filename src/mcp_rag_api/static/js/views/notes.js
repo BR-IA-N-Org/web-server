@@ -86,7 +86,7 @@ async function renderNotesScreen(main, openId) {
     } else if (menu) {
       await openFolderMenu(menu);
     } else if (folder) {
-      const collapsed = new Set(store.get("concilium:collapsed") || []);
+      const collapsed = collapsedSet();
       const name = folder.dataset.toggleFolder;
       collapsed.has(name) ? collapsed.delete(name) : collapsed.add(name);
       store.set("concilium:collapsed", [...collapsed]);
@@ -142,6 +142,21 @@ const parseLoc = (value) => {
 // chave de recolhido: coleção pelo nome (compatível com o que já está salvo), pasta por "f:<id>"
 const folderKey = (folderId) => `f:${folderId}`;
 
+// Pastas recolhidas na árvore (preferência por navegador). Base grande sem preferência salva: começa com
+// todas as pastas fechadas — pastas fechadas não vão ao DOM (plan-web-24), e o caminho até a nota aberta
+// é reaberto por revealInTree. Base pequena segue abrindo tudo, como antes.
+const COLLAPSED_KEY = "concilium:collapsed";
+const LARGE_TREE = 300;
+
+function collapsedSet() {
+  let saved = store.get(COLLAPSED_KEY);
+  if (!Array.isArray(saved) && notes.tree && notes.tree.notes.length > LARGE_TREE) {
+    saved = notes.tree.folders.map((f) => folderKey(f.id));
+    store.set(COLLAPSED_KEY, saved);
+  }
+  return new Set(saved || []);
+}
+
 function treeIndex() {
   const byId = new Map(notes.tree.folders.map((f) => [f.id, f]));
   const kids = new Map();
@@ -173,7 +188,7 @@ function renderNotesTree() {
   const box = document.getElementById("notes-tree-list");
   if (!box || !notes.tree) return;
   const q = titleKey(notes.filter);
-  const collapsed = new Set(store.get("concilium:collapsed") || []);
+  const collapsed = collapsedSet();
   const ix = treeIndex();
 
   const noteButton = (n) =>
@@ -199,30 +214,36 @@ function renderNotesTree() {
               : ""
           }
         </div>
-        <div class="tree-notes">${html || `<div class="tree-empty">${t("notes.emptyFolder")}</div>`}</div>
+        <div class="tree-notes">${closed && !q ? "" : html || `<div class="tree-empty">${t("notes.emptyFolder")}</div>`}</div>
       </div>`;
   };
 
-  // conteúdo de um local (subpastas + notas); count = notas da subárvore que passam no filtro
-  const branch = (collection, parentId) => {
+  // conteúdo de um local (subpastas + notas); count = notas da subárvore que passam no filtro.
+  // visible=false (pasta fechada, sem filtro): só conta — o HTML de dentro não é gerado nem vai ao DOM
+  // (plan-web-24: com ~2 mil notas, a árvore punha todas no DOM mesmo com as pastas fechadas)
+  const branch = (collection, parentId, visible = true) => {
     let html = "";
     let count = 0;
     for (const f of ix.kids.get(locKey(collection, parentId)) || []) {
-      const sub = branch(collection, f.id);
+      const closed = collapsed.has(folderKey(f.id));
+      const sub = branch(collection, f.id, visible && (!closed || Boolean(q)));
       count += sub.count;
-      if (q && !sub.count) continue;
-      html += folderNode({ collection, folderId: f.id, label: f.name, ...sub, closed: collapsed.has(folderKey(f.id)) });
+      if (!visible || (q && !sub.count)) continue;
+      html += folderNode({ collection, folderId: f.id, label: f.name, ...sub, closed });
     }
-    const items = (ix.notesAt.get(locKey(collection, parentId)) || []).filter((n) => !q || titleKey(n.title).includes(q));
+    const here = ix.notesAt.get(locKey(collection, parentId)) || [];
+    if (!visible && !q) return { html: "", count: count + here.length };
+    const items = here.filter((n) => !q || titleKey(n.title).includes(q));
     count += items.length;
-    return { html: html + items.map(noteButton).join(""), count };
+    return { html: visible ? html + items.map(noteButton).join("") : "", count };
   };
 
   box.innerHTML =
     notes.tree.collections
       .map((c) => {
-        const sub = branch(c.name, null);
-        return q && !sub.count ? "" : folderNode({ collection: c.name, label: c.name, ...sub, closed: collapsed.has(c.name) });
+        const closed = collapsed.has(c.name);
+        const sub = branch(c.name, null, !closed || Boolean(q));
+        return q && !sub.count ? "" : folderNode({ collection: c.name, label: c.name, ...sub, closed });
       })
       .join("") || `<div class="tree-empty">${t("notes.nothingFound", { query: escHtml(notes.filter) })}</div>`;
   loadIcons(box);
@@ -230,7 +251,7 @@ function renderNotesTree() {
 
 // abre na árvore o caminho até um local (coleção e pastas-mãe)
 function revealInTree(collection, folderId) {
-  const collapsed = new Set(store.get("concilium:collapsed") || []);
+  const collapsed = collapsedSet();
   collapsed.delete(collection);
   for (const f of folderChain(folderId)) collapsed.delete(folderKey(f.id));
   store.set("concilium:collapsed", [...collapsed]);

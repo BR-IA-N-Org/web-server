@@ -8,6 +8,9 @@ const state = {
   insights: null,
   level: "documents",
   collection: "",
+  folderId: null, // grafo: pasta escolhida no seletor de local (inclui subpastas)
+  graphPicker: null,
+  searchScope: { collection: "", folderId: null }, // busca: onde procurar
   minSimilarity: 0.5, // calibrado para bge-m3: docs relacionados ficam ~0.5–0.7
   k: 5,
   colors: new Map(),

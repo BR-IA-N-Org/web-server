@@ -8,6 +8,7 @@ import { state, colorFor, store } from "../state.js";
 import { on } from "../events.js";
 import { closePanel, openConnectModal, openDocumentPanel } from "./docpanel.js";
 import { loaderHtml } from "../loader.js";
+import { createLocationPicker } from "../location-picker.js";
 
 /* ---------------------------------------------------------------- preferências do grafo (por navegador) */
 
@@ -38,7 +39,7 @@ function graphTemplate() {
           <span class="sub" id="graph-sub"></span>
         </header>
         <div class="toolbar">
-          <div class="field">${icon("folder")}<label for="f-collection">${t("graph.collection")}</label><select id="f-collection"><option value="">${t("graph.all")}</option></select></div>
+          <div id="f-location"></div>
           <div class="field">${icon("sliders-horizontal")}<label for="f-sim">${t("graph.similarity")} <span id="f-sim-val" class="mono">${state.minSimilarity.toFixed(2)}</span></label>
             <input type="range" id="f-sim" min="0" max="0.95" step="0.05" value="${state.minSimilarity}" />
           </div>
@@ -83,9 +84,14 @@ function graphTemplate() {
 function bindGraphControls() {
   const main = document.getElementById("main");
   const reloadSoon = debounce(loadGraph, 250);
-  main.querySelector("#f-collection").addEventListener("change", (e) => {
-    state.collection = e.target.value;
-    loadGraph();
+  // local: coleção ou pasta (com subpastas) — com uma coleção só, o recorte útil são as pastas
+  state.graphPicker = createLocationPicker(main.querySelector("#f-location"), {
+    value: { collection: state.collection, folderId: state.folderId },
+    onChange: ({ collection, folderId }) => {
+      state.collection = collection;
+      state.folderId = folderId;
+      loadGraph();
+    },
   });
   main.querySelector("#f-sim").addEventListener("input", (e) => {
     state.minSimilarity = Number(e.target.value);
@@ -153,7 +159,8 @@ function bindGraphControls() {
     if (!btn) return;
     setLegendHover(null);
     state.collection = btn.dataset.col;
-    main.querySelector("#f-collection").value = state.collection;
+    state.folderId = null; // a legenda filtra por coleção inteira
+    state.graphPicker?.set({ collection: state.collection, folderId: null });
     loadGraph();
   });
 }
@@ -168,7 +175,7 @@ async function explainMissingEdges(data, req) {
   if (!state.showSemantic || data.edges.some((e) => e.kind === "semantic") || data.nodes.length < 2) return;
   let probe;
   try {
-    probe = await api.get("/graph", { level: state.level, collection: state.collection, min_similarity: 0, k: 1 });
+    probe = await api.get("/graph", { level: state.level, collection: state.collection, folder_id: state.folderId || "", min_similarity: 0, k: 1 });
   } catch {
     return;
   }
@@ -226,6 +233,7 @@ async function loadGraph() {
       api.get("/graph", {
         level: state.level,
         collection: state.collection,
+        folder_id: state.folderId || "",
         min_similarity: state.minSimilarity,
         k: state.k,
       }),
@@ -238,7 +246,6 @@ async function loadGraph() {
   }
   // resposta atrasada de um filtro anterior: descarta
   if (req !== graphRequest || !document.getElementById("graph-wrap")) return;
-  fillCollectionFilter(data.collections);
   if (!data.nodes.length) {
     graphMessage(t("graph.empty"));
     return;
@@ -297,14 +304,6 @@ function graphMessage(msg) {
   }
   const sub = document.getElementById("graph-sub");
   if (sub) sub.textContent = "";
-}
-
-function fillCollectionFilter(collections) {
-  const sel = document.getElementById("f-collection");
-  const current = state.collection;
-  sel.innerHTML =
-    `<option value="">${t("graph.all")}</option>` +
-    collections.map((c) => `<option value="${escHtml(c.name)}" ${c.name === current ? "selected" : ""}>${escHtml(c.name)} (${c.count})</option>`).join("");
 }
 
 function hexAlpha(hex, alpha) {
