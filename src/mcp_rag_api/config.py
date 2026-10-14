@@ -22,7 +22,8 @@ def default_migrations_dir() -> Path:
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    database_url: str = "postgresql://user:password@localhost:5432/kb"
+    # sem usuário/senha no default: a credencial vem sempre do .env (DATABASE_URL)
+    database_url: str = "postgresql://localhost:5432/kb"
     public_url: str = "http://localhost:8000"
     # None = usar as migrações embutidas no pacote; MIGRATIONS_DIR sobrescreve (deploys antigos).
     migrations_dir: Path | None = None
@@ -81,6 +82,11 @@ class Settings(BaseSettings):
         return self
 
 
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
+# senhas de exemplo que já apareceram nos docs/compose do projeto
+WEAK_DB_PASSWORDS = {"password", "senha", "change-me", "kb"}
+
+
 def _csv(value: str) -> set[str]:
     return {item.strip().lower() for item in value.split(",") if item.strip()}
 
@@ -127,7 +133,16 @@ def check_config() -> list[str]:
     env_name, key = required_key.get(s.embedding_provider, ("", ""))
     if env_name and not key:
         raise RuntimeError(f"EMBEDDING_PROVIDER={s.embedding_provider} exige {env_name}: defina a variável no .env")
+    public = urlparse(s.public_url).hostname not in LOCAL_HOSTS
+    if s.kb_auth_disabled and public:
+        # auth desligada com URL pública = API e MCP abertos como admin para a internet
+        raise RuntimeError(
+            f"KB_AUTH_DISABLED=true só é aceito com PUBLIC_URL local; PUBLIC_URL={s.public_url}. "
+            "Desligue KB_AUTH_DISABLED em produção."
+        )
     warnings: list[str] = []
+    if public and urlparse(s.database_url).password in WEAK_DB_PASSWORDS:
+        warnings.append("DATABASE_URL usa uma senha de exemplo (ex.: 'password') — troque a senha do banco")
     if s.public_url == "http://localhost:8000":
         warnings.append("PUBLIC_URL é o padrão http://localhost:8000 — defina a URL pública em produção")
     if s.oauth_enabled and (issue := oauth_issue()):

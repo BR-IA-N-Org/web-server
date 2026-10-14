@@ -49,7 +49,7 @@ function keyRow(k, isAdmin) {
         <span class="row-icon">${icon(k.agent ? "bot" : "key-round")}</span>
         <div class="grow">
           <div class="row-title">${escHtml(k.label ?? "—")}</div>
-          <div class="mono muted">${escHtml(k.prefix)}…</div>
+          ${k.prefix ? `<div class="mono muted">${escHtml(k.prefix)}…</div>` : ""}
         </div>
       </div>
       <div class="tcell">${accessChips(k.scopes)}</div>

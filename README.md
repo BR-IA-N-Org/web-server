@@ -96,7 +96,7 @@ Agents also get a home: a profile (system prompt), persistent memory, session su
 ```bash
 # 1. PostgreSQL with pgvector (skip this if you already have one)
 docker run -d --name concilium-db -p 5432:5432 \
-  -e POSTGRES_USER=user -e POSTGRES_PASSWORD=password -e POSTGRES_DB=kb \
+  -e POSTGRES_USER=user -e POSTGRES_PASSWORD=change-me -e POSTGRES_DB=kb \
   pgvector/pgvector:pg16
 
 # 2. Install
