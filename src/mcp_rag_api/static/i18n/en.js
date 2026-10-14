@@ -491,9 +491,13 @@ window.I18N.en = {
   "health.people": { one: "{count} person with access", other: "{count} people with access" },
 
   // grafo
+  "picker.label": "Location",
+  "picker.all": "Whole base",
+  "picker.search": "Find a folder…",
+  "picker.empty": "No folder found.",
+  "picker.failed": "Could not load the folders.",
+  "search.scope": "Search in",
   "graph.title": "Knowledge graph",
-  "graph.collection": "Collection",
-  "graph.all": "All",
   "graph.similarity": "Similarity ≥",
   "graph.documents": "Documents",
   "graph.chunks": "Chunks",

@@ -115,6 +115,50 @@ async def list_folders(p: Principal, collection: str | None = None) -> list[dict
     return items
 
 
+async def folder_subtree_ids(conn: asyncpg.Connection, p: Principal, folder_id: str) -> list[uuid.UUID]:
+    """A pasta e todas as subpastas (qualquer profundidade) — filtro "dentro desta pasta" do grafo e da busca."""
+    await _load_folder(conn, p, folder_id)  # existe e está no alcance do principal
+    rows = await conn.fetch(
+        """
+        WITH RECURSIVE sub AS (
+          SELECT id FROM folders WHERE id = $1
+          UNION ALL SELECT f.id FROM folders f JOIN sub ON f.parent_id = sub.id
+        )
+        SELECT id FROM sub
+        """,
+        parse_uuid(folder_id, "folder_id"),
+    )
+    return [r["id"] for r in rows]
+
+
+async def location_tree(p: Principal) -> dict:
+    """Coleções e pastas com nº de notas ativas (diretas e com subpastas) — seletor de local da dash."""
+    p.require("read")
+    items = await list_folders(p)
+    direct = {
+        str(r["folder_id"]): r["n"]
+        for r in await pool().fetch(
+            "SELECT folder_id, count(*) AS n FROM documents WHERE status = 'active' AND folder_id IS NOT NULL "
+            "GROUP BY folder_id"
+        )
+    }
+    children: dict[str | None, list[dict]] = {}
+    for f in items:
+        children.setdefault(f["parent_id"], []).append(f)
+    totals: dict[str, int] = {}
+
+    def total(f: dict) -> int:  # pós-ordem com memo: cada pasta somada uma vez
+        if f["id"] not in totals:
+            totals[f["id"]] = direct.get(f["id"], 0) + sum(total(c) for c in children.get(f["id"], []))
+        return totals[f["id"]]
+
+    for f in items:
+        f["documents"] = direct.get(f["id"], 0)
+        f["total"] = total(f)
+    collections = [{"name": c["name"], "documents": c["documents"]} for c in await documents.list_collections(p)]
+    return {"collections": collections, "folders": items}
+
+
 async def create_folder(p: Principal, collection: str, name: str, parent_id: str | None = None) -> dict:
     p.require("write")
     name = validate_folder_name(name)

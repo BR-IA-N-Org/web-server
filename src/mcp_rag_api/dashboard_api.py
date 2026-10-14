@@ -134,9 +134,17 @@ async def get_graph(
     min_similarity: float = Query(default=0.5, ge=0.0, lt=1.0),
     k: int = Query(default=5, ge=1, le=20),
     level: Literal["documents", "chunks"] = "documents",
+    folder_id: str | None = None,
 ) -> dict:
-    """Nós e arestas do grafo da base: vizinhança por cosseno (centroides ou chunks)."""
-    return await graph.build_graph(level, collection, min_similarity, k)
+    """Nós e arestas do grafo da base: vizinhança por cosseno (centroides ou chunks). folder_id = só a
+    pasta e as subpastas."""
+    return await graph.build_graph(level, collection, min_similarity, k, folder_id or None)
+
+
+@router.get("/folders")
+async def location_tree(user: DashUser = Depends(current_user)) -> dict:
+    """Coleções e pastas (caminho, nº de notas diretas e com subpastas) para o seletor de local."""
+    return await folders.location_tree(_reader(user))
 
 
 def _reader(user: DashUser) -> Principal:
@@ -1021,6 +1029,7 @@ async def get_insights(days: int = Query(default=30, ge=1, le=365)) -> dict:
 class SearchTestIn(BaseModel):
     query: str
     collections: list[str] | None = None
+    folder_id: str | None = None  # só a pasta e as subpastas
     top_k: int = Field(default=5, ge=1, le=20)
 
 
@@ -1028,5 +1037,11 @@ class SearchTestIn(BaseModel):
 async def search_test(body: SearchTestIn, user: DashUser = Depends(current_user)) -> dict:
     """Roda a busca híbrida real da base e devolve os chunks, para destacar no grafo."""
     principal = Principal(actor=f"dash:{user.username}", scopes=frozenset({"read"}))
-    results = await search.search_knowledge(principal, body.query, body.collections, None, None, body.top_k)
+    folder_ids = None
+    if body.folder_id:
+        async with pool().acquire() as conn:
+            folder_ids = await folders.folder_subtree_ids(conn, principal, body.folder_id)
+    results = await search.search_knowledge(
+        principal, body.query, body.collections, None, None, body.top_k, folder_ids=folder_ids
+    )
     return {"results": results}

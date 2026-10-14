@@ -22,6 +22,8 @@ from typing import Literal
 import numpy as np
 
 from ..db import pool, records
+from ..security import Principal
+from . import folders as folders_core
 
 MAX_CHUNK_NODES = 2000  # teto do nível "chunks" para não derrubar o navegador
 MAX_K = 20  # maior top-k aceito pelo endpoint: o cache guarda esses vizinhos e filtra por k/threshold
@@ -36,6 +38,7 @@ _DOC_NODES_SQL = """
     LEFT JOIN (SELECT document_id, count(*) AS n FROM chunks GROUP BY document_id) ch ON ch.document_id = d.id
     WHERE d.status = 'active' AND d.centroid IS NOT NULL
       AND ($1::text IS NULL OR c.name = $1)
+      AND ($2::uuid[] IS NULL OR d.folder_id = ANY($2))
     ORDER BY c.name, d.title
 """
 
@@ -46,6 +49,7 @@ _CHUNK_NODES_SQL = """
     JOIN collections col ON col.id = d.collection_id
     WHERE d.status = 'active'
       AND ($1::text IS NULL OR col.name = $1)
+      AND ($3::uuid[] IS NULL OR d.folder_id = ANY($3))
     ORDER BY c.id
     LIMIT $2
 """
@@ -130,8 +134,8 @@ def _vectors_and_neighbors(rows: list) -> tuple[np.ndarray, np.ndarray]:
     return top_neighbors(matrix, MAX_K)
 
 
-async def _base(level: str, collection: str | None) -> _Base:
-    key = (level, collection)
+async def _base(level: str, collection: str | None, folder_ids: list | None = None) -> _Base:
+    key = (level, collection, tuple(sorted(str(f) for f in folder_ids)) if folder_ids else None)
     stamp = tuple(await pool().fetchrow(_STAMP_SQL))
     cached = _cache.get(key)
     if cached and cached.stamp == stamp and time.monotonic() - cached.built_at < _CACHE_TTL_S:
@@ -143,10 +147,10 @@ async def _base(level: str, collection: str | None) -> _Base:
         if cached and cached.stamp == stamp and time.monotonic() - cached.built_at < _CACHE_TTL_S:
             return cached
         if level == "chunks":
-            rows = await pool().fetch(_CHUNK_NODES_SQL, collection, MAX_CHUNK_NODES)
+            rows = await pool().fetch(_CHUNK_NODES_SQL, collection, MAX_CHUNK_NODES, folder_ids)
             explicit: list[dict] = []
         else:
-            rows = await pool().fetch(_DOC_NODES_SQL, collection)
+            rows = await pool().fetch(_DOC_NODES_SQL, collection, folder_ids)
             explicit = records(await pool().fetch(_LINK_EDGES_SQL, collection))
         # CPU fora do event loop: o servidor roda com 1 worker e não pode travar as outras requisições
         neighbor_idx, neighbor_sim = await asyncio.to_thread(_vectors_and_neighbors, rows)
@@ -203,8 +207,16 @@ async def build_graph(
     collection: str | None,
     min_similarity: float,
     k: int,
+    folder_id: str | None = None,
+    principal: Principal | None = None,
 ) -> dict:
-    base = await _base(level, collection)
+    """folder_id: só as notas dessa pasta e das subpastas (plan-web-23)."""
+    folder_ids = None
+    if folder_id:
+        reader = principal or Principal(actor="graph", scopes=frozenset({"read"}))
+        async with pool().acquire() as conn:
+            folder_ids = await folders_core.folder_subtree_ids(conn, reader, folder_id)
+    base = await _base(level, collection, folder_ids)
     nodes = base.nodes
     k = max(0, min(k, base.neighbor_idx.shape[1] if base.neighbor_idx.ndim == 2 else 0))
     edges = []
