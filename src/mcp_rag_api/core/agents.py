@@ -387,7 +387,7 @@ async def revoke_agent_key(p: Principal, key_prefix: str) -> dict:
     async with pool().acquire() as conn, conn.transaction():
         rows = await conn.fetch(
             """
-            SELECT k.id, k.agent_id, a.scopes
+            SELECT k.id, k.agent_id, a.scopes, a.allowed_collections
             FROM api_keys k LEFT JOIN agents a ON a.id = k.agent_id
             WHERE k.prefix = $1 AND k.revoked_at IS NULL
             FOR UPDATE OF k
@@ -401,7 +401,7 @@ async def revoke_agent_key(p: Principal, key_prefix: str) -> dict:
             if row["agent_id"] is None and not p.has("admin"):
                 raise PermissionDenied("Só uma chave admin revoga chaves que não são de agente.")
             if row["agent_id"] is not None:
-                _check_grant(p, list(row["scopes"]))  # chave de agente elevado: só admin
+                _check_reach(p, row)  # escopos e coleções do agente dono da chave
         await conn.execute("UPDATE api_keys SET revoked_at = now() WHERE id = ANY($1)", [r["id"] for r in rows])
         await audit(conn, p.actor, "key.revoke", key_prefix)
     return {"revoked": len(rows), "prefix": key_prefix}
