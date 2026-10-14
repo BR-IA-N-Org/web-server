@@ -4401,3 +4401,213 @@ table.dt .num {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+/* ---------------------------------------------------------------- loader da marca (js/loader.js)
+   Logo animado só com CSS (transform/opacity: compositor, sem repaint de layout). Ciclo de 3 s;
+   cada braço ocupa 1 s do ciclo (--i = 0, 1, 2) e entra pelo delay negativo, já na fase certa.
+   Dentro de cada janela de 1 s (≈ 33,3% do ciclo): sinal viaja 0–6,67%, nó pulsa 6,67–18,33%. */
+
+.cl-loader {
+  --cl-size: 88px;
+  --cl-cycle: 3s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  color: var(--accent);
+}
+
+.cl-loader.sm {
+  --cl-size: 26px;
+  flex-direction: row;
+  gap: 10px;
+}
+
+.cl-svg {
+  width: var(--cl-size);
+  height: auto;
+  overflow: visible;
+  fill: currentColor;
+}
+
+.cl-svg * {
+  transform-box: view-box;
+}
+
+.cl-label {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.cl-body {
+  transform-origin: 89px 135.5px;
+  animation: cl-breathe var(--cl-cycle) ease-in-out infinite;
+}
+
+.cl-eye {
+  animation: cl-blink var(--cl-cycle) ease-in-out infinite;
+}
+
+.cl-arm,
+.cl-node,
+.cl-ripple,
+.cl-signal {
+  animation-duration: var(--cl-cycle);
+  animation-iteration-count: infinite;
+  animation-delay: calc(var(--i) * 1s - var(--cl-cycle));
+}
+
+.cl-arm {
+  opacity: 0.8;
+  animation-name: cl-arm;
+}
+
+.cl-node {
+  animation-name: cl-node;
+  animation-timing-function: ease-in-out;
+}
+
+.cl-ripple {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3px;
+  opacity: 0;
+  animation-name: cl-ripple;
+  animation-timing-function: ease-out;
+}
+
+.cl-signal {
+  opacity: 0;
+  animation-name: cl-signal;
+}
+
+@keyframes cl-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.025);
+  }
+  75% {
+    transform: scale(0.975);
+  }
+}
+
+@keyframes cl-blink {
+  0%,
+  78%,
+  84%,
+  100% {
+    transform: scaleY(1);
+  }
+  81% {
+    transform: scaleY(0.08);
+  }
+}
+
+@keyframes cl-arm {
+  0%,
+  10%,
+  100% {
+    opacity: 0.8;
+  }
+  4% {
+    opacity: 1;
+  }
+}
+
+@keyframes cl-signal {
+  0% {
+    transform: translate(0, 0);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  6.67% {
+    transform: translate(var(--dx), var(--dy));
+    opacity: 1;
+  }
+  7.33%,
+  100% {
+    transform: translate(var(--dx), var(--dy));
+    opacity: 0;
+  }
+}
+
+@keyframes cl-node {
+  0%,
+  6.67%,
+  18.33%,
+  100% {
+    transform: scale(1);
+  }
+  12.5% {
+    transform: scale(1.18);
+  }
+}
+
+@keyframes cl-ripple {
+  0%,
+  6.6% {
+    transform: scale(1);
+    opacity: 0;
+  }
+  6.67% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  18.33%,
+  100% {
+    transform: scale(2.07);
+    opacity: 0;
+  }
+}
+
+/* boot: cobre a tela até o JS montar a dash; só aparece após 150 ms (carga rápida não pisca) */
+.cl-boot {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  animation: cl-fade-in 0.3s ease-out 0.15s both;
+}
+
+@keyframes cl-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* área de carregamento dentro de painéis laterais */
+.cl-pad {
+  padding: 24px 0;
+  display: flex;
+  justify-content: center;
+}
+
+/* movimento reduzido: partes paradas, só um fade suave do logo inteiro */
+@media (prefers-reduced-motion: reduce) {
+  .cl-svg * {
+    animation: none !important;
+  }
+  .cl-signal,
+  .cl-ripple {
+    opacity: 0 !important;
+  }
+  .cl-svg {
+    animation: cl-calm 1.6s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes cl-calm {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.45;
+  }
+}

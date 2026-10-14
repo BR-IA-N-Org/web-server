@@ -7,6 +7,7 @@ import { escHtml, debounce } from "../ui.js";
 import { state, colorFor, store } from "../state.js";
 import { on } from "../events.js";
 import { closePanel, openConnectModal, openDocumentPanel } from "./docpanel.js";
+import { loaderHtml } from "../loader.js";
 
 /* ---------------------------------------------------------------- preferências do grafo (por navegador) */
 
@@ -65,7 +66,7 @@ function graphTemplate() {
         <div class="graph-wrap" id="graph-wrap">
           <!-- o force-graph limpa o elemento em que é montado: overlays ficam fora de #graph-canvas -->
           <div class="graph-canvas" id="graph-canvas"></div>
-          <div class="empty-state" id="graph-empty">${t("graph.loading")}</div>
+          <div class="empty-state" id="graph-empty">${loaderHtml(t("graph.loading"))}</div>
           <div class="legend hidden" id="graph-legend"></div>
           <div class="graph-notice hidden" id="graph-notice" role="status"></div>
           <div class="graph-hint hidden" id="graph-hint">${state.graphMode === "3d" ? t("graph.hint3d") : t("graph.hint")}</div>
