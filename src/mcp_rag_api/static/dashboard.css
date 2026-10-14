@@ -842,6 +842,19 @@ select option {
   flex: 1;
 }
 
+/* coleção + "Abrir nota" (vai para o editor em #/notes/<id>) */
+.panel-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.panel-actions .btn {
+  text-decoration: none;
+}
+
 /* painel largo (setinha no cabeçalho): mais espaço para ler o documento; o grafo ao lado se reajusta */
 .panel {
   transition: width 0.18s ease, flex-basis 0.18s ease;

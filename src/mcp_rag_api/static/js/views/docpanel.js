@@ -41,7 +41,10 @@ async function openDocumentPanel(docId) {
       ${expandButton()}
       <button class="icon-btn" id="panel-close" title="${t("common.close")}">${icon("x", 16)}</button>
     </div>
-    <div class="chip"><span class="dot" style="background:${colorFor(doc.collection)}"></span>${escHtml(doc.collection)}</div>
+    <div class="panel-actions">
+      <div class="chip"><span class="dot" style="background:${colorFor(doc.collection)}"></span>${escHtml(doc.collection)}</div>
+      <a class="btn sm primary" id="panel-open-note" href="#/notes/${encodeURIComponent(doc.id)}">${icon("pencil", 14)}<span>${t("doc.openNote")}</span></a>
+    </div>
     <dl class="kv">
       <dt>${t("doc.version")}</dt><dd>v${doc.version} · ${doc.status === "active" ? t("doc.active") : t("doc.archived")}</dd>
       <dt>${t("doc.createdBy")}</dt><dd>${escHtml(doc.created_by ?? "—")}</dd>

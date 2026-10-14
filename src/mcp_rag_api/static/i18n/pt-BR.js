@@ -600,6 +600,7 @@ window.I18N["pt-BR"] = {
   "doc.loadFailed": "Não foi possível carregar o documento.",
   "doc.expandPanel": "Expandir o painel",
   "doc.collapsePanel": "Recolher o painel",
+  "doc.openNote": "Abrir nota",
   "doc.version": "Versão",
   "doc.active": "ativo",
   "doc.archived": "arquivado",

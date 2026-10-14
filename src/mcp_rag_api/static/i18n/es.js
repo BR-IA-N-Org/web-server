@@ -599,6 +599,7 @@ window.I18N.es = {
   "doc.loadFailed": "No se pudo cargar el documento.",
   "doc.expandPanel": "Expandir el panel",
   "doc.collapsePanel": "Contraer el panel",
+  "doc.openNote": "Abrir nota",
   "doc.version": "Versión",
   "doc.active": "activo",
   "doc.archived": "archivado",
