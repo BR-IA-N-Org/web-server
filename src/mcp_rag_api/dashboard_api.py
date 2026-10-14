@@ -736,8 +736,10 @@ async def issue_agent_key(slug: str, body: AgentKeyIn, user: DashUser = Depends(
 
 
 @router.get("/keys")
-async def list_keys(_user: DashUser = Depends(current_user)) -> list[dict]:
-    """Todas as chaves da API (prefixo, label, escopos, agente, último uso, status)."""
+async def list_keys(user: DashUser = Depends(current_user)) -> list[dict]:
+    """Todas as chaves da API (prefixo, label, escopos, agente, último uso, status).
+
+    O prefixo identifica a chave na revogação pela API/MCP: só admin o recebe."""
     rows = await pool().fetch(
         """
         SELECT k.id, k.prefix, k.label, k.scopes, k.revoked_at, k.last_used_at, k.created_at,
@@ -747,7 +749,11 @@ async def list_keys(_user: DashUser = Depends(current_user)) -> list[dict]:
         ORDER BY k.created_at DESC
         """
     )
-    return records(rows)
+    items = records(rows)
+    if not user.is_admin:
+        for item in items:
+            item["prefix"] = None
+    return items
 
 
 class KeyIn(BaseModel):
