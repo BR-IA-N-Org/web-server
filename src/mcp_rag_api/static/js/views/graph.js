@@ -463,36 +463,68 @@ const LABEL_FONT = 'Inter, system-ui, -apple-system, "Segoe UI", sans-serif';
 // Rótulos num passe próprio, depois de nós e arestas: ficam por cima de tudo e entram em ordem de
 // importância (foco > destaque > mais conexões). Rótulo que colidiria com um já desenhado é pulado —
 // sem isso, com dezenas de nós, os títulos viravam uma mancha ilegível no centro.
-function drawLabels2d(ctx, scale, nodes) {
+// Rótulos num passe próprio, depois de nós e arestas: ficam por cima de tudo e entram em ordem de
+// importância (foco > destaque > mais conexões). Rótulo que colidiria com um já desenhado é pulado —
+// sem isso, com dezenas de nós, os títulos viravam uma mancha ilegível no centro.
+// Desempenho (plan-web-22, bases com ~2 mil nós): a ordem por grau é calculada uma vez por carga
+// (labelOrder), só entram nós dentro da tela, há teto de rótulos por quadro e a largura do texto fica
+// em cache (mede a 12px uma vez; no zoom só escala).
+const MAX_LABELS = 140;
+const labelWidth = new Map();
+
+function measureLabel(ctx, text, weight) {
+  const key = `${weight}|${text}`;
+  let w = labelWidth.get(key);
+  if (w === undefined) {
+    ctx.font = `${weight} 12px ${LABEL_FONT}`;
+    w = ctx.measureText(text).width;
+    if (labelWidth.size > 20000) labelWidth.clear();
+    labelWidth.set(key, w);
+  }
+  return w;
+}
+
+function drawLabels2d(ctx, scale, g) {
   const v = view;
-  if (!v) return;
+  if (!v || !v.labelOrder) return;
   const focused = v.focusId() != null;
-  const prio = (n) => (state.hoverNode === n || state.connectFrom === n ? 3 : v.inFocus(n) ? 2 : v.isHl(n) ? 1.5 : 0) * 1000 + (v.degree.get(n.id) || 0);
-  const ordered = [...nodes].sort((a, b) => prio(b) - prio(a));
+  // área visível em coordenadas do grafo (com folga para rótulos que começam fora da borda)
+  const topLeft = g.screen2GraphCoords(0, 0);
+  const bottomRight = g.screen2GraphCoords(g.width(), g.height());
+  const margin = 80 / scale;
+  const onScreen = (n) =>
+    n.x >= topLeft.x - margin && n.x <= bottomRight.x + margin && n.y >= topLeft.y - margin && n.y <= bottomRight.y + margin;
+  // foco primeiro (poucos nós), depois a ordem fixa por grau
+  const focusFirst = focused ? v.labelOrder.filter((n) => v.inFocus(n)) : [];
+  const hoveredNode = state.hoverNode || state.connectFrom;
+  if (hoveredNode) focusFirst.sort((a, b) => (b === hoveredNode) - (a === hoveredNode));
+  const candidates = focused ? focusFirst : v.labelOrder;
   const boxes = [];
   const fontSize = 12 / scale;
   const pad = 3 / scale;
-  for (const n of ordered) {
-    const isFocus = v.inFocus(n);
-    const hovered = state.hoverNode === n || state.connectFrom === n;
-    // com foco ativo, só a vizinhança ganha rótulo; sem foco, longe demais só os nós grandes
-    if (focused && !isFocus) continue;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = 3 / scale;
+  ctx.strokeStyle = v.colors.bg;
+  for (const n of candidates) {
+    if (boxes.length >= MAX_LABELS) break;
+    if (!onScreen(n)) continue;
+    const isFocus = focused && v.inFocus(n);
+    const hovered = n === hoveredNode;
+    // sem foco e longe demais: só os nós grandes
     if (!focused && scale < 0.55 && (v.degree.get(n.id) || 0) < 6) continue;
     const max = hovered ? 64 : 30;
     const text = n.label.length > max ? n.label.slice(0, max - 1) + "…" : n.label;
-    ctx.font = `${hovered ? 600 : 500} ${fontSize}px ${LABEL_FONT}`;
-    const w = ctx.measureText(text).width;
+    const weight = hovered ? 600 : 500;
+    const w = measureLabel(ctx, text, weight) / scale;
     const r = v.radius(n);
     const box = { x: n.x - w / 2 - pad, y: n.y + r + 4 / scale - pad, w: w + 2 * pad, h: fontSize + 2 * pad };
     const hits = boxes.some((b) => box.x < b.x + b.w && box.x + box.w > b.x && box.y < b.y + b.h && box.y + box.h > b.y);
     if (hits && !hovered) continue;
     boxes.push(box);
-    ctx.textAlign = "center";
-    ctx.textBaseline = "top";
+    ctx.font = `${weight} ${fontSize}px ${LABEL_FONT}`;
     // contorno na cor do fundo: o texto continua legível por cima das arestas
-    ctx.lineJoin = "round";
-    ctx.lineWidth = 3 / scale;
-    ctx.strokeStyle = v.colors.bg;
     ctx.strokeText(text, n.x, n.y + r + 4 / scale);
     ctx.fillStyle = hovered ? v.colors.labelHover : v.nodeDimmed(n) && !isFocus ? v.colors.labelDim : v.colors.label;
     ctx.fillText(text, n.x, n.y + r + 4 / scale);
@@ -531,7 +563,7 @@ function draw2d(g, nodes, links) {
       ctx.fillStyle = color;
       ctx.fill();
     })
-    .onRenderFramePost((ctx, scale) => drawLabels2d(ctx, scale, g.graphData().nodes))
+    .onRenderFramePost((ctx, scale) => drawLabels2d(ctx, scale, g))
     .linkColor(v.linkColor)
     .linkWidth(v.linkWidth)
     .linkLineDash(null)
@@ -644,6 +676,8 @@ function drawGraph(data) {
   state.hoverNode = null;
   state.graphNeedsFit = true;
   const links = view.visibleEdges.map((e) => ({ ...e }));
+  // destacados (testador de busca) primeiro, depois por nº de conexões
+  view.labelOrder = [...nodes].sort((a, b) => view.isHl(b) - view.isHl(a) || (view.degree.get(b.id) || 0) - (view.degree.get(a.id) || 0));
   if (state.graphMode === "3d") draw3d(state.graphInstance, nodes, links);
   else draw2d(state.graphInstance, nodes, links);
 
