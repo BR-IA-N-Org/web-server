@@ -1080,6 +1080,13 @@ select option {
   justify-content: center;
 }
 
+/* o cartão reaproveita .login-card, cujo .btn.primary tem margin-top (botão "Entrar"): aqui os dois
+   botões dividem a mesma linha do grid, e a margem empurrava "Autorizar" 6px para baixo e esticava
+   "Recusar" (41px × 35px). Quatro classes para vencer .login-card .btn.primary sem depender da ordem. */
+.login-card .consent-actions .btn.primary {
+  margin-top: 0;
+}
+
 .consent-done {
   display: flex;
   align-items: center;
