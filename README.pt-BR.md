@@ -96,7 +96,7 @@ Os agentes também ganham uma casa: perfil (system prompt), memória persistente
 ```bash
 # 1. PostgreSQL com pgvector (pule se você já tem um)
 docker run -d --name concilium-db -p 5432:5432 \
-  -e POSTGRES_USER=user -e POSTGRES_PASSWORD=password -e POSTGRES_DB=kb \
+  -e POSTGRES_USER=user -e POSTGRES_PASSWORD=change-me -e POSTGRES_DB=kb \
   pgvector/pgvector:pg16
 
 # 2. Instalar
