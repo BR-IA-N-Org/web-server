@@ -491,9 +491,13 @@ window.I18N.es = {
   "health.people": "{count} persona(s) con acceso",
 
   // grafo
+  "picker.label": "Ubicación",
+  "picker.all": "Toda la base",
+  "picker.search": "Buscar carpeta…",
+  "picker.empty": "No se encontró ninguna carpeta.",
+  "picker.failed": "No se pudieron cargar las carpetas.",
+  "search.scope": "Buscar en",
   "graph.title": "Grafo de la base",
-  "graph.collection": "Colección",
-  "graph.all": "Todas",
   "graph.similarity": "Similitud ≥",
   "graph.documents": "Documentos",
   "graph.chunks": "Fragmentos",
