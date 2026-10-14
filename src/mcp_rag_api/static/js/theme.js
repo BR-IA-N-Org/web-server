@@ -60,6 +60,7 @@ function graphTheme() {
   const css = getComputedStyle(document.documentElement);
   const v = (name) => css.getPropertyValue(name).trim();
   return {
+    bg: v("--bg"), // contorno dos rótulos: texto legível por cima das arestas
     label: v("--graph-label"),
     labelHover: v("--graph-label-hover"),
     labelDim: v("--graph-label-dim"),

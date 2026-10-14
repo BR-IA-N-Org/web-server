@@ -531,6 +531,11 @@ input[type="range"] {
   accent-color: var(--accent);
 }
 
+/* toolbar do grafo: sliders compactos para os filtros caberem numa linha */
+.toolbar input[type="range"] {
+  width: 92px;
+}
+
 select option {
   background: var(--bg-elevated);
   color: var(--text);
@@ -623,9 +628,8 @@ select option {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
-  background:
-    radial-gradient(ellipse at top, rgba(var(--fg-rgb), 0.02), transparent 60%),
-    var(--bg);
+  /* fundo liso: o gradiente radial de alpha 0.02 tinha só 2–3 degraus e aparecia como uma faixa reta no topo */
+  background: var(--bg);
 }
 
 .graph-canvas {
@@ -2467,8 +2471,21 @@ textarea.input {
   border-top: 2px solid rgba(var(--accent-rgb), 0.85);
 }
 
+/* similaridade: linha contínua e discreta, igual às arestas do grafo (a força vira opacidade) */
 .edge-swatch.semantic {
-  border-top: 2px dashed rgba(var(--fg-rgb), 0.55);
+  border-top: 1.5px solid rgba(var(--fg-rgb), 0.4);
+}
+
+/* seletor 2D/3D: ícone + texto alinhados */
+#f-mode button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* tooltip do nó no 3D: coleção e conexões em segundo plano */
+.graph-canvas .float-tooltip-kap .muted {
+  color: var(--text-dim);
 }
 
 /* tooltip das arestas/nós do force-graph no tema */
