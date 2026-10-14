@@ -185,10 +185,11 @@ body {
   letter-spacing: 0.01em;
 }
 
+/* personagem da marca (js/brand.js): SVG inline na cor de destaque do tema */
 .brand-logo {
   display: block;
   flex: none;
-  object-fit: contain;
+  color: var(--accent);
 }
 
 .nav-item {
@@ -3849,4 +3850,537 @@ table.dt .num {
   background:
     linear-gradient(var(--bg-elevated), var(--bg-elevated)) padding-box,
     linear-gradient(180deg, var(--edge-top-hover), var(--edge-bottom)) border-box;
+}
+
+/* ---------------------------------------------------------------- temas (plan-web-21)
+   Paleta = <html data-palette="…"> (js/theme.js, boot.js); o modo claro/escuro segue em data-theme, então as
+   regras [data-theme="light"] (editor, gráficos) continuam valendo. Cada bloco redefine só os tokens de cor;
+   valores das paletas oficiais, com ajuste mínimo onde o texto da UI não atingia contraste legível
+   (ex.: o "comment" do Dracula, 3,0:1). Contraste conferido por tests/unit/test_themes.py. */
+:root[data-palette="one-dark"] {
+  --bg-frame: #21252b;
+  --bg: #282c34;
+  --bg-sidebar: #23272e;
+  --bg-elevated: #2c313a;
+  --text: #d7dae0;
+  --text-dim: #9da5b4;
+  --text-body: #abb2bf;
+  --accent: #61afef;
+  --accent-rgb: 97, 175, 239;
+  --on-accent: #1e2227;
+  --selected-text: #ffffff;
+  --danger: #e06c75;
+  --danger-rgb: 224, 108, 117;
+  --success: #98c379;
+  --success-rgb: 152, 195, 121;
+  --fg-rgb: 215, 218, 224;
+  --surface-rgb: 40, 44, 52;
+  --graph-label: #9da5b4;
+  --graph-label-hover: #d7dae0;
+  --graph-label-dim: rgba(157, 165, 180, 0.35);
+  --graph-node-stroke: rgba(40, 44, 52, 0.9);
+  --graph-edge-rgb: 171, 178, 191;
+}
+:root[data-palette="dracula"] {
+  --bg-frame: #191a21;
+  --bg: #282a36;
+  --bg-sidebar: #21222c;
+  --bg-elevated: #343746;
+  --text: #f8f8f2;
+  --text-dim: #a7abbe;
+  --text-body: #e6e6e0;
+  --accent: #bd93f9;
+  --accent-rgb: 189, 147, 249;
+  --on-accent: #191a21;
+  --selected-text: #ffffff;
+  --danger: #ff5555;
+  --danger-rgb: 255, 85, 85;
+  --success: #50fa7b;
+  --success-rgb: 80, 250, 123;
+  --fg-rgb: 248, 248, 242;
+  --surface-rgb: 40, 42, 54;
+  --graph-label: #a7abbe;
+  --graph-label-hover: #f8f8f2;
+  --graph-label-dim: rgba(167, 171, 190, 0.35);
+  --graph-node-stroke: rgba(40, 42, 54, 0.9);
+  --graph-edge-rgb: 248, 248, 242;
+}
+:root[data-palette="github-dark"] {
+  --bg-frame: #010409;
+  --bg: #0d1117;
+  --bg-sidebar: #010409;
+  --bg-elevated: #161b22;
+  --text: #f0f6fc;
+  --text-dim: #9198a1;
+  --text-body: #d1d7e0;
+  --accent: #238636;
+  --accent-rgb: 35, 134, 54;
+  --on-accent: #ffffff;
+  --selected-text: #ffffff;
+  --danger: #f85149;
+  --danger-rgb: 248, 81, 73;
+  --success: #3fb950;
+  --success-rgb: 63, 185, 80;
+  --fg-rgb: 240, 246, 252;
+  --surface-rgb: 13, 17, 23;
+  --graph-label: #9198a1;
+  --graph-label-hover: #f0f6fc;
+  --graph-label-dim: rgba(145, 152, 161, 0.35);
+  --graph-node-stroke: rgba(13, 17, 23, 0.9);
+  --graph-edge-rgb: 209, 215, 224;
+}
+:root[data-palette="ayu-dark"] {
+  --bg-frame: #0b0e14;
+  --bg: #0d1017;
+  --bg-sidebar: #0b0e14;
+  --bg-elevated: #131721;
+  --text: #e6e1cf;
+  --text-dim: #8a9199;
+  --text-body: #bfbdb6;
+  --accent: #e6b450;
+  --accent-rgb: 230, 180, 80;
+  --on-accent: #0b0e14;
+  --selected-text: #ffffff;
+  --danger: #f26d78;
+  --danger-rgb: 242, 109, 120;
+  --success: #aad94c;
+  --success-rgb: 170, 217, 76;
+  --fg-rgb: 230, 225, 207;
+  --surface-rgb: 13, 16, 23;
+  --graph-label: #8a9199;
+  --graph-label-hover: #e6e1cf;
+  --graph-label-dim: rgba(138, 145, 153, 0.35);
+  --graph-node-stroke: rgba(13, 16, 23, 0.9);
+  --graph-edge-rgb: 191, 189, 182;
+}
+:root[data-palette="catppuccin-mocha"] {
+  --bg-frame: #11111b;
+  --bg: #1e1e2e;
+  --bg-sidebar: #181825;
+  --bg-elevated: #252536;
+  --text: #cdd6f4;
+  --text-dim: #a6adc8;
+  --text-body: #bac2de;
+  --accent: #cba6f7;
+  --accent-rgb: 203, 166, 247;
+  --on-accent: #1e1e2e;
+  --selected-text: #cdd6f4;
+  --danger: #f38ba8;
+  --danger-rgb: 243, 139, 168;
+  --success: #a6e3a1;
+  --success-rgb: 166, 227, 161;
+  --fg-rgb: 205, 214, 244;
+  --surface-rgb: 30, 30, 46;
+  --graph-label: #a6adc8;
+  --graph-label-hover: #cdd6f4;
+  --graph-label-dim: rgba(166, 173, 200, 0.35);
+  --graph-node-stroke: rgba(30, 30, 46, 0.9);
+  --graph-edge-rgb: 186, 194, 222;
+}
+:root[data-palette="shades-of-purple"] {
+  --bg-frame: #1e1e3f;
+  --bg: #2d2b55;
+  --bg-sidebar: #25234a;
+  --bg-elevated: #353268;
+  --text: #ffffff;
+  --text-dim: #a599e9;
+  --text-body: #e3dfff;
+  --accent: #fad000;
+  --accent-rgb: 250, 208, 0;
+  --on-accent: #1e1e3f;
+  --selected-text: #ffffff;
+  --danger: #ff628c;
+  --danger-rgb: 255, 98, 140;
+  --success: #3ad900;
+  --success-rgb: 58, 217, 0;
+  --fg-rgb: 255, 255, 255;
+  --surface-rgb: 45, 43, 85;
+  --graph-label: #a599e9;
+  --graph-label-hover: #ffffff;
+  --graph-label-dim: rgba(165, 153, 233, 0.35);
+  --graph-node-stroke: rgba(45, 43, 85, 0.9);
+  --graph-edge-rgb: 165, 153, 233;
+}
+:root[data-palette="mono-dark"] {
+  --bg-frame: #000000;
+  --bg: #0a0a0a;
+  --bg-sidebar: #050505;
+  --bg-elevated: #141414;
+  --text: #ffffff;
+  --text-dim: #a3a3a3;
+  --text-body: #e5e5e5;
+  --accent: #ffffff;
+  --accent-rgb: 255, 255, 255;
+  --on-accent: #000000;
+  --selected-text: #ffffff;
+  --danger: #ffffff;
+  --danger-rgb: 255, 255, 255;
+  --success: #ffffff;
+  --success-rgb: 255, 255, 255;
+  --fg-rgb: 255, 255, 255;
+  --surface-rgb: 10, 10, 10;
+  --graph-label: #a3a3a3;
+  --graph-label-hover: #ffffff;
+  --graph-label-dim: rgba(163, 163, 163, 0.35);
+  --graph-node-stroke: rgba(10, 10, 10, 0.9);
+  --graph-edge-rgb: 255, 255, 255;
+  --collection-palette: #ffffff, #a3a3a3, #d4d4d4, #737373, #e5e5e5, #8a8a8a, #c4c4c4, #5e5e5e;
+}
+:root[data-palette="github-light"] {
+  --bg-frame: #f6f8fa;
+  --bg: #ffffff;
+  --bg-sidebar: #f6f8fa;
+  --bg-elevated: #ffffff;
+  --text: #1f2328;
+  --text-dim: #59636e;
+  --text-body: #1f2328;
+  --accent: #1f883d;
+  --accent-rgb: 31, 136, 61;
+  --on-accent: #ffffff;
+  --selected-text: #1f2328;
+  --danger: #d1242f;
+  --danger-rgb: 209, 36, 47;
+  --success: #1a7f37;
+  --success-rgb: 26, 127, 55;
+  --fg-rgb: 31, 35, 40;
+  --surface-rgb: 255, 255, 255;
+  --graph-label: #59636e;
+  --graph-label-hover: #1f2328;
+  --graph-label-dim: rgba(89, 99, 110, 0.35);
+  --graph-node-stroke: rgba(255, 255, 255, 0.9);
+  --graph-edge-rgb: 89, 99, 110;
+}
+:root[data-palette="ayu-light"] {
+  --bg-frame: #f3f4f5;
+  --bg: #fcfcfc;
+  --bg-sidebar: #f8f9fa;
+  --bg-elevated: #ffffff;
+  --text: #333a40;
+  --text-dim: #646a71;
+  --text-body: #4d5257;
+  --accent: #b35f00;
+  --accent-rgb: 179, 95, 0;
+  --on-accent: #ffffff;
+  --selected-text: #333a40;
+  --danger: #d23f3f;
+  --danger-rgb: 210, 63, 63;
+  --success: #4f8a1f;
+  --success-rgb: 79, 138, 31;
+  --fg-rgb: 51, 58, 64;
+  --surface-rgb: 252, 252, 252;
+  --graph-label: #646a71;
+  --graph-label-hover: #333a40;
+  --graph-label-dim: rgba(100, 106, 113, 0.35);
+  --graph-node-stroke: rgba(252, 252, 252, 0.9);
+  --graph-edge-rgb: 92, 97, 102;
+}
+:root[data-palette="catppuccin-latte"] {
+  --bg-frame: #dce0e8;
+  --bg: #eff1f5;
+  --bg-sidebar: #e6e9ef;
+  --bg-elevated: #f9fafb;
+  --text: #4c4f69;
+  --text-dim: #5e6178;
+  --text-body: #4c4f69;
+  --accent: #8839ef;
+  --accent-rgb: 136, 57, 239;
+  --on-accent: #ffffff;
+  --selected-text: #4c4f69;
+  --danger: #d20f39;
+  --danger-rgb: 210, 15, 57;
+  --success: #40a02b;
+  --success-rgb: 64, 160, 43;
+  --fg-rgb: 76, 79, 105;
+  --surface-rgb: 239, 241, 245;
+  --graph-label: #5e6178;
+  --graph-label-hover: #4c4f69;
+  --graph-label-dim: rgba(94, 97, 120, 0.35);
+  --graph-node-stroke: rgba(239, 241, 245, 0.9);
+  --graph-edge-rgb: 92, 95, 119;
+}
+:root[data-palette="mono-light"] {
+  --bg-frame: #ffffff;
+  --bg: #ffffff;
+  --bg-sidebar: #fafafa;
+  --bg-elevated: #ffffff;
+  --text: #000000;
+  --text-dim: #525252;
+  --text-body: #171717;
+  --accent: #000000;
+  --accent-rgb: 0, 0, 0;
+  --on-accent: #ffffff;
+  --selected-text: #000000;
+  --danger: #000000;
+  --danger-rgb: 0, 0, 0;
+  --success: #000000;
+  --success-rgb: 0, 0, 0;
+  --fg-rgb: 0, 0, 0;
+  --surface-rgb: 255, 255, 255;
+  --graph-label: #525252;
+  --graph-label-hover: #000000;
+  --graph-label-dim: rgba(82, 82, 82, 0.35);
+  --graph-node-stroke: rgba(255, 255, 255, 0.9);
+  --graph-edge-rgb: 0, 0, 0;
+  --collection-palette: #000000, #525252, #262626, #737373, #404040, #8a8a8a, #171717, #a3a3a3;
+}
+:root[data-palette="one-dark"] .overview-page {
+  --viz-surface: #2c313a;
+  --viz-accent: #61afef;
+  --viz-accent-hover: #8cc4f3;
+  --viz-accent-track: rgba(97, 175, 239, 0.2);
+  --viz-grid: #343a45;
+  --viz-axis: #3e4451;
+  --viz-muted: #9da5b4;
+  --viz-good: #98c379;
+}
+:root[data-palette="dracula"] .overview-page {
+  --viz-surface: #343746;
+  --viz-accent: #bd93f9;
+  --viz-accent-hover: #d4b8fb;
+  --viz-accent-track: rgba(189, 147, 249, 0.2);
+  --viz-grid: #3a3d4e;
+  --viz-axis: #44475a;
+  --viz-muted: #a7abbe;
+  --viz-good: #50fa7b;
+}
+:root[data-palette="github-dark"] .overview-page {
+  --viz-surface: #161b22;
+  --viz-accent: #2ea043;
+  --viz-accent-hover: #3fb950;
+  --viz-accent-track: rgba(46, 160, 67, 0.2);
+  --viz-grid: #21262d;
+  --viz-axis: #30363d;
+  --viz-muted: #9198a1;
+  --viz-good: #3fb950;
+}
+:root[data-palette="ayu-dark"] .overview-page {
+  --viz-surface: #131721;
+  --viz-accent: #e6b450;
+  --viz-accent-hover: #f0c56a;
+  --viz-accent-track: rgba(230, 180, 80, 0.2);
+  --viz-grid: #1a1f29;
+  --viz-axis: #262b36;
+  --viz-muted: #8a9199;
+  --viz-good: #aad94c;
+}
+:root[data-palette="catppuccin-mocha"] .overview-page {
+  --viz-surface: #252536;
+  --viz-accent: #cba6f7;
+  --viz-accent-hover: #dcc3fa;
+  --viz-accent-track: rgba(203, 166, 247, 0.2);
+  --viz-grid: #313244;
+  --viz-axis: #45475a;
+  --viz-muted: #a6adc8;
+  --viz-good: #a6e3a1;
+}
+:root[data-palette="shades-of-purple"] .overview-page {
+  --viz-surface: #353268;
+  --viz-accent: #fad000;
+  --viz-accent-hover: #ffe04d;
+  --viz-accent-track: rgba(250, 208, 0, 0.2);
+  --viz-grid: #3d3a73;
+  --viz-axis: #4d4a85;
+  --viz-muted: #a599e9;
+  --viz-good: #3ad900;
+}
+:root[data-palette="mono-dark"] .overview-page {
+  --viz-surface: #141414;
+  --viz-accent: #ffffff;
+  --viz-accent-hover: #d4d4d4;
+  --viz-accent-track: rgba(255, 255, 255, 0.2);
+  --viz-grid: #262626;
+  --viz-axis: #3a3a3a;
+  --viz-muted: #a3a3a3;
+  --viz-good: #ffffff;
+}
+:root[data-palette="github-light"] .overview-page {
+  --viz-surface: #ffffff;
+  --viz-accent: #1f883d;
+  --viz-accent-hover: #2da44e;
+  --viz-accent-track: rgba(31, 136, 61, 0.15);
+  --viz-grid: #eaeef2;
+  --viz-axis: #d1d9e0;
+  --viz-muted: #59636e;
+  --viz-good: #1a7f37;
+}
+:root[data-palette="ayu-light"] .overview-page {
+  --viz-surface: #ffffff;
+  --viz-accent: #b35f00;
+  --viz-accent-hover: #cc6d00;
+  --viz-accent-track: rgba(179, 95, 0, 0.15);
+  --viz-grid: #eef0f2;
+  --viz-axis: #dfe2e5;
+  --viz-muted: #646a71;
+  --viz-good: #4f8a1f;
+}
+:root[data-palette="catppuccin-latte"] .overview-page {
+  --viz-surface: #f9fafb;
+  --viz-accent: #8839ef;
+  --viz-accent-hover: #9d5ef2;
+  --viz-accent-track: rgba(136, 57, 239, 0.15);
+  --viz-grid: #e6e9ef;
+  --viz-axis: #ccd0da;
+  --viz-muted: #5e6178;
+  --viz-good: #40a02b;
+}
+:root[data-palette="mono-light"] .overview-page {
+  --viz-surface: #ffffff;
+  --viz-accent: #000000;
+  --viz-accent-hover: #404040;
+  --viz-accent-track: rgba(0, 0, 0, 0.15);
+  --viz-grid: #f0f0f0;
+  --viz-axis: #d4d4d4;
+  --viz-muted: #525252;
+  --viz-good: #000000;
+}
+
+
+/* ---------------------------------------------------------------- seletor de temas (js/theme-picker.js) */
+
+.menu-extra {
+  font-size: 12px;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.theme-auto {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.theme-group-title {
+  margin: 18px 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.theme-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.12s, transform 0.12s;
+}
+
+.theme-card:hover,
+.theme-auto:hover {
+  border-color: var(--border-strong);
+}
+
+.theme-card:hover {
+  transform: translateY(-1px);
+}
+
+.theme-card.active,
+.theme-auto.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.theme-card:focus-visible,
+.theme-auto:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* miniatura: moldura + painel com duas linhas de texto e um botão na cor de destaque */
+.theme-preview {
+  display: block;
+  height: 64px;
+  padding: 8px 0 0 18px;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(var(--fg-rgb), 0.08);
+}
+
+.tp-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  padding: 9px 10px;
+  border-radius: 5px 0 0 0;
+}
+
+.tp-line {
+  height: 4px;
+  width: 70%;
+  border-radius: 2px;
+}
+
+.tp-line.short {
+  width: 45%;
+  opacity: 0.45;
+}
+
+.tp-pill {
+  height: 9px;
+  width: 34px;
+  margin-top: 2px;
+  border-radius: 3px;
+}
+
+.theme-name {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.theme-name [data-icon] {
+  color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-card {
+    transition: none;
+  }
+  .theme-card:hover {
+    transform: none;
+  }
+}
+
+/* preto e branco: o Toast UI fixa a cor do código inline (rosado); aqui ele segue o texto, e os links
+   (mesma cor do texto, já que o destaque é a própria tinta) ganham sublinhado para continuar reconhecíveis */
+:root[data-palette="mono-dark"] .toastui-editor-contents code,
+:root[data-palette="mono-light"] .toastui-editor-contents code {
+  color: var(--text);
+  background: rgba(var(--fg-rgb), 0.1);
+}
+
+:root[data-palette="mono-dark"] .toastui-editor-contents a,
+:root[data-palette="mono-light"] .toastui-editor-contents a {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }

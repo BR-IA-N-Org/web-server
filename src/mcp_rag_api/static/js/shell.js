@@ -1,7 +1,9 @@
 /* Shell da dashboard — sidebar, navegação principal e menu do usuário. */
 import { api } from "./api.js";
 import { t, LANGS, currentLang, setLang } from "./i18n.js";
-import { currentTheme, setTheme } from "./theme.js";
+import { currentThemeId } from "./theme.js";
+import { themeById } from "./themes.js";
+import { openThemePicker, themeLabel } from "./theme-picker.js";
 import { icon, loadIcons } from "./icons.js";
 import { escHtml, brandLogo } from "./ui.js";
 import { state } from "./state.js";
@@ -72,7 +74,7 @@ function renderUserFooter() {
       ${item('data-goto="connections"', "plug", t("menu.connections"))}
       ${isAdmin ? item('data-goto="users"', "users", t("menu.users")) : ""}
       <div class="menu-sep"></div>
-      ${item("data-theme-toggle", currentTheme() === "dark" ? "sun" : "moon", currentTheme() === "dark" ? t("menu.lightTheme") : t("menu.darkTheme"))}
+      ${item("data-theme-picker", "palette", t("menu.theme"), `<span class="muted menu-extra">${escHtml(themeLabel(themeById(currentThemeId())))}</span>`)}
       <div class="menu-item static lang-row">${icon("languages")}<span class="grow">${t("menu.language")}</span>
         <span class="lang-seg" role="radiogroup" aria-label="${t("menu.language")}">${LANGS.map(
           (l) => `<button type="button" role="radio" aria-checked="${l.id === currentLang()}" class="${l.id === currentLang() ? "active" : ""}" data-lang="${l.id}" title="${l.name}">${l.label}</button>`,
@@ -125,10 +127,9 @@ function renderUserFooter() {
     setOpen(false);
     if (el.dataset.goto) {
       emit("navigate", { screen: el.dataset.goto });
-    } else if ("themeToggle" in el.dataset) {
-      setTheme(currentTheme() === "dark" ? "light" : "dark");
-      // re-renderiza a tela: editor e grafo leem o tema na criação
-      emit("navigate", { screen: state.screen, openId: notes.openId });
+    } else if ("themePicker" in el.dataset) {
+      // cada troca re-renderiza a tela: editor e grafo leem o tema na criação
+      openThemePicker(() => emit("navigate", { screen: state.screen, openId: notes.openId }));
     } else if (el.dataset.href) {
       window.open(el.dataset.href, "_blank", "noopener");
     } else if ("logout" in el.dataset) {

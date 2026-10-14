@@ -4,9 +4,11 @@
 import { t } from "./i18n.js";
 import { icon, loadIcons } from "./icons.js";
 import { brandLogo, enhancePasswordFields, escHtml } from "./ui.js";
+import { syncFavicon } from "./brand.js";
 
 const requestId = new URLSearchParams(location.search).get("request") || "";
 const app = document.getElementById("app");
+syncFavicon(); // ícone da aba na cor do tema
 
 // [escopo, chave do rótulo, chave da descrição]
 const PERMISSIONS = [
