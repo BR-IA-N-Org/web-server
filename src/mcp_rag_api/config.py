@@ -56,8 +56,11 @@ class Settings(BaseSettings):
     oauth_enabled: bool = True
     oauth_access_ttl_minutes: int = Field(default=60, gt=0)
     oauth_refresh_ttl_days: int = Field(default=30, gt=0)
-    # hosts https aceitos como redirect_uri no registro dinâmico (loopback http sempre aceito)
-    oauth_redirect_allowlist: str = "claude.ai,claude.com"
+    # hosts https aceitos como redirect_uri no registro dinâmico (subdomínios inclusos; loopback http
+    # sempre aceito): Claude, ChatGPT, VS Code (web), Mistral Le Chat
+    oauth_redirect_allowlist: str = "claude.ai,claude.com,chatgpt.com,openai.com,vscode.dev,mistral.ai"
+    # esquemas de app nativo aceitos como redirect_uri (ex.: cursor://anysphere.cursor-mcp/oauth/callback)
+    oauth_redirect_schemes: str = "cursor,vscode,vscode-insiders"
 
     kb_log_level: str = "INFO"
     # tempo de vida das sessões da dashboard, em horas (padrão: 7 dias)
@@ -78,8 +81,17 @@ class Settings(BaseSettings):
         return self
 
 
+def _csv(value: str) -> set[str]:
+    return {item.strip().lower() for item in value.split(",") if item.strip()}
+
+
 def oauth_redirect_hosts(s: Settings) -> set[str]:
-    return {h.strip().lower() for h in s.oauth_redirect_allowlist.split(",") if h.strip()}
+    return _csv(s.oauth_redirect_allowlist)
+
+
+def oauth_redirect_schemes(s: Settings) -> set[str]:
+    # http/https nunca entram por aqui: seguem as regras de loopback e de host
+    return _csv(s.oauth_redirect_schemes) - {"http", "https"}
 
 
 def oauth_issue() -> str | None:

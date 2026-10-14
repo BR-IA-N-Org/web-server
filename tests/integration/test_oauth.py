@@ -147,6 +147,8 @@ async def test_metadata_and_mcp_challenge():
         prm = (await c.get("/.well-known/oauth-protected-resource/mcp")).json()
         assert prm["resource"] == f"{base}/mcp" and prm["authorization_servers"] == [base]
 
+        assert (await c.get("/.well-known/openid-configuration")).status_code == 404  # não cai no portão
+
         resp = await c.post("/mcp", json={})
         assert resp.status_code == 401
         challenge = resp.headers["WWW-Authenticate"]
@@ -160,7 +162,18 @@ async def test_register_allowlist():
     assert (await _register(CLAUDE_CB)).status_code == 201
     assert (await _register("https://claude.com/api/mcp/auth_callback")).status_code == 201
     assert (await _register("http://localhost:33418/callback")).status_code == 201  # Claude Code
-    for bad in ["https://evil.example/cb", "http://claude.ai/cb", "https://claude.ai.evil.example/cb"]:
+    assert (await _register("https://chatgpt.com/connector/oauth/7DoEaYwjkfwH")).status_code == 201  # ChatGPT
+    assert (await _register("https://vscode.dev/redirect")).status_code == 201
+    assert (await _register("cursor://anysphere.cursor-mcp/oauth/callback")).status_code == 201  # app nativo
+    bad_uris = [
+        "https://evil.example/cb",
+        "http://claude.ai/cb",
+        "https://claude.ai.evil.example/cb",
+        "https://notchatgpt.com/cb",
+        "evilapp://callback",
+        "javascript://alert(1)",
+    ]
+    for bad in bad_uris:
         resp = await _register(bad)
         assert resp.status_code == 400 and resp.json()["error"] == "invalid_redirect_uri", bad
 

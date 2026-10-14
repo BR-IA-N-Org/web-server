@@ -135,6 +135,21 @@ async def create_collection(ctx: Context, name: str, description: str | None = N
 
 
 @tool
+async def rename_collection(ctx: Context, name: str, new_name: str) -> dict:
+    """Renomeia uma coleção (pasta principal). Agentes e acessos restritos a ela passam a apontar para o
+    nome novo. Requer escopo admin."""
+    return await folders.rename_collection(await current_principal(ctx), name, new_name)
+
+
+@tool
+async def delete_collection(ctx: Context, name: str) -> dict:
+    """Exclui uma coleção (pasta principal) — IRREVERSÍVEL. Só funciona sem notas ativas (arquive ou mova
+    antes); notas arquivadas, versões e pastas dela são apagadas junto. Recusa se algum agente ativo ou
+    acesso OAuth estiver restrito a ela. Requer escopo admin. Confirme com o usuário antes de chamar."""
+    return await folders.delete_collection(await current_principal(ctx), name)
+
+
+@tool
 async def list_folders(ctx: Context, collection: str | None = None) -> list[dict]:
     """Lista as pastas dentro das coleções (id, coleção, nome e path completo "A/B/C")."""
     return await folders.list_folders(await current_principal(ctx), collection)

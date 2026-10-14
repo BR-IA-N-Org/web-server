@@ -196,6 +196,12 @@ class RequireBearer:
         await self.app(scope, receive, send)
 
 
+@app.get("/.well-known/openid-configuration", include_in_schema=False)
+async def no_openid_configuration() -> JSONResponse:
+    # clientes como o ChatGPT tentam OIDC antes do metadata OAuth: 404 limpo em vez do 401 do portão do /mcp
+    return JSONResponse({"detail": "Sem OpenID Connect: use /.well-known/oauth-authorization-server."}, status_code=404)
+
+
 @app.get("/dashboard", include_in_schema=False)
 async def dashboard_page() -> Response:
     if VERSIONED_STATIC_PREFIX is None:
