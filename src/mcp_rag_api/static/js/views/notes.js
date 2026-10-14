@@ -8,6 +8,7 @@ import { state, colorFor, store } from "../state.js";
 import { on } from "../events.js";
 import { openConnectModal } from "./docpanel.js";
 import { openImportModal } from "./import.js";
+import { loaderHtml } from "../loader.js";
 
 // o import de vault (import.js) avisa quando a árvore precisa ser relida
 on("notes:changed", () => {
@@ -972,7 +973,7 @@ async function renderNoteSide(kind) {
   side.classList.toggle("hidden", !kind);
   if (!kind || !notes.current) return;
   const n = notes.current;
-  side.innerHTML = `<div class="muted">${t("common.loading")}</div>`;
+  side.innerHTML = `<div class="cl-pad">${loaderHtml(t("common.loading"), "sm")}</div>`;
   if (kind === "related") {
     let rel;
     try {
