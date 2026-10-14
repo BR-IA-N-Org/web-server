@@ -4,7 +4,7 @@ nem chave de agente com escopo elevado."""
 import pytest
 
 from mcp_rag_api import db
-from mcp_rag_api.core import agents
+from mcp_rag_api.core import agents, documents
 from mcp_rag_api.security import DEV_PRINCIPAL as ADMIN
 from mcp_rag_api.security import PermissionDenied, Principal, create_api_key, resolve_key
 
@@ -44,3 +44,22 @@ async def test_manager_revokes_only_plain_agent_keys():
 
     assert (await agents.revoke_agent_key(MANAGER, plain_prefix))["revoked"] == 1
     assert not await _still_valid(plain["api_key"])
+
+
+async def test_scoped_manager_revokes_only_keys_within_its_collections():
+    scoped = Principal(
+        actor="dash:oauth-admin",
+        scopes=frozenset({"read", "write", "agents:manage"}),
+        allowed_collections=("rev-a",),
+    )
+    for name in ("rev-a", "rev-b"):
+        await documents.create_collection(ADMIN, name)
+    inside = await agents.create_agent(ADMIN, "rev-in", "Dentro", "p", allowed_collections=["rev-a"], scopes=["read"])
+    outside = await agents.create_agent(ADMIN, "rev-out", "Fora", "p", allowed_collections=["rev-b"], scopes=["read"])
+
+    with pytest.raises(PermissionDenied):
+        await agents.revoke_agent_key(scoped, outside["api_key"][:12])
+    assert await _still_valid(outside["api_key"])
+
+    assert (await agents.revoke_agent_key(scoped, inside["api_key"][:12]))["revoked"] == 1
+    assert not await _still_valid(inside["api_key"])
