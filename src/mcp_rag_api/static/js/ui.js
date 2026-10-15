@@ -191,4 +191,27 @@ function disclosure({ id, hint = "", body }) {
     </details>`;
 }
 
-export { escHtml, sanitizeNoteHtml, fmtDate, fmtAgo, debounce, modalShell, bindModal, uiDialog, uiConfirm, uiAlert, uiError, brandLogo, enhancePasswordFields, disclosure };
+// Faixa com rolagem lateral (filtros do grafo no celular): bolinha com seta em cada ponta, só do lado
+// em que ainda há conteúdo escondido. O pai da faixa precisa ser .strip-wrap (position: relative).
+function scrollArrows(strip) {
+  const wrap = strip.parentElement;
+  const arrow = (side) =>
+    `<button class="strip-arrow ${side} hidden" type="button" data-strip="${side}" title="${t(`common.scroll.${side}`)}" aria-label="${t(`common.scroll.${side}`)}">${icon(`chevron-${side}`, 16)}</button>`;
+  wrap.insertAdjacentHTML("beforeend", arrow("left") + arrow("right"));
+  loadIcons(wrap);
+  const left = wrap.querySelector('[data-strip="left"]');
+  const right = wrap.querySelector('[data-strip="right"]');
+  const update = () => {
+    const max = strip.scrollWidth - strip.clientWidth;
+    left.classList.toggle("hidden", strip.scrollLeft <= 2);
+    right.classList.toggle("hidden", max <= 2 || strip.scrollLeft >= max - 2);
+  };
+  const step = (dir) => strip.scrollBy({ left: dir * strip.clientWidth * 0.7, behavior: "smooth" });
+  left.addEventListener("click", () => step(-1));
+  right.addEventListener("click", () => step(1));
+  strip.addEventListener("scroll", update, { passive: true });
+  new ResizeObserver(update).observe(strip);
+  update();
+}
+
+export { escHtml, sanitizeNoteHtml, fmtDate, fmtAgo, debounce, modalShell, bindModal, uiDialog, uiConfirm, uiAlert, uiError, brandLogo, enhancePasswordFields, disclosure, scrollArrows };
