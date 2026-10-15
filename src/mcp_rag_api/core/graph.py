@@ -6,6 +6,10 @@ por threshold de similaridade (kind "semantic"). No nível "documents" entram ta
 explícitos (kind "link": [[wikilinks]] e manuais), independentes do threshold; se o par também é
 vizinho semântico, a aresta vira "link" com a similaridade junto.
 
+Layout e grupos (plan-web-26): no nível "documents" cada nó vem com x,y e o grupo por assunto, do
+layout calculado no servidor (core/graph_layout.py) — o navegador não roda física. Bases grandes abrem
+na visão de grupos (um nó por grupo, view="groups"); group=N devolve só as notas daquele grupo.
+
 Desempenho (plan-web-22): os vetores vêm numa consulta só e os vizinhos são calculados em memória
 com numpy (produto de matrizes em blocos, numa thread). Antes era um LATERAL por nó no Postgres que
 não usava o índice vetorial: com ~1.900 documentos levava ~2,3 s e, no nível chunks, ~3,4 min
@@ -15,17 +19,21 @@ invalidado pela assinatura da base (_STAMP_SQL) — slider de similaridade e top
 
 import asyncio
 import time
-from collections import OrderedDict
+from collections import Counter, OrderedDict
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 
 from ..db import pool, records
+from ..logging_config import get_logger
 from ..security import Principal
 from . import folders as folders_core
+from . import graph_layout
 
 MAX_CHUNK_NODES = 2000  # teto do nível "chunks" para não derrubar o navegador
+GROUPS_AUTO_MIN = 1500  # acima disso a visão "auto" abre nos grupos
+GROUP_EDGES_PER_GROUP = 3  # na visão de grupos, as ligações mais fortes de cada grupo
 MAX_K = 20  # maior top-k aceito pelo endpoint: o cache guarda esses vizinhos e filtra por k/threshold
 _BLOCK_ROWS = 512  # linhas por bloco do produto de matrizes (memória ≈ bloco × n × 4 bytes)
 _CACHE_SIZE = 8
@@ -202,6 +210,70 @@ def _dedupe_edges(rows: list[dict]) -> list[dict]:
     return sorted(best.values(), key=lambda e: -e["similarity"])
 
 
+async def warm_layout() -> None:
+    """Calcula (ou carrega do Postgres) o layout e os vizinhos da base inteira ao subir o servidor, fora
+    das requisições: a primeira abertura do grafo não espera o cálculo."""
+    try:
+        base = await _base("documents", None)  # vizinhos da base inteira (a 1ª abertura sem filtro)
+        await graph_layout.get_layout(repr(base.stamp))
+    except Exception:  # noqa: BLE001 — aquecimento é otimização; erro aqui não derruba o boot
+        get_logger().warning("graph layout: aquecimento falhou", exc_info=True)
+
+
+def _group_view(nodes: list[dict], edges: list[dict], labels: list[str]) -> tuple[list[dict], list[dict]]:
+    """Um nó por grupo (tamanho, posição média e títulos mais conectados) e arestas entre grupos
+    (quantas ligações há entre eles, no filtro atual)."""
+    degree: dict[str, int] = {}
+    for e in edges:
+        degree[e["source"]] = degree.get(e["source"], 0) + 1
+        degree[e["target"]] = degree.get(e["target"], 0) + 1
+    members: dict[int, list[dict]] = {}
+    for n in nodes:
+        if "group" in n:
+            members.setdefault(n["group"], []).append(n)
+    group_nodes = []
+    for g, ms in sorted(members.items()):
+        top = sorted(ms, key=lambda n: -degree.get(n["id"], 0))[:3]
+        collections = Counter(n["collection"] for n in ms)
+        group_nodes.append(
+            {
+                "id": f"group:{g}",
+                "group": g,
+                "title": labels[g] if g < len(labels) else "—",
+                "size": len(ms),
+                "collection": collections.most_common(1)[0][0],
+                "x": round(sum(n["x"] for n in ms) / len(ms), 1),
+                "y": round(sum(n["y"] for n in ms) / len(ms), 1),
+                "top": [n["title"] for n in top],
+            }
+        )
+    group_of = {n["id"]: n["group"] for n in nodes if "group" in n}
+    pairs: dict[tuple[int, int], list[float]] = {}
+    for e in edges:
+        a, b = group_of.get(e["source"]), group_of.get(e["target"])
+        if a is None or b is None or a == b:
+            continue
+        pairs.setdefault((min(a, b), max(a, b)), []).append(e["similarity"] or 0)
+    keep: set[tuple[int, int]] = set()
+    by_group: dict[int, list[tuple[int, tuple[int, int]]]] = {}
+    for pair, sims in pairs.items():
+        for g in pair:
+            by_group.setdefault(g, []).append((len(sims), pair))
+    for ranked in by_group.values():
+        keep.update(pair for _, pair in sorted(ranked, reverse=True)[:GROUP_EDGES_PER_GROUP])
+    group_edges = [
+        {
+            "source": f"group:{a}",
+            "target": f"group:{b}",
+            "kind": "group",
+            "weight": len(pairs[(a, b)]),
+            "similarity": round(sum(pairs[(a, b)]) / len(pairs[(a, b)]), 4),
+        }
+        for a, b in sorted(keep)
+    ]
+    return group_nodes, group_edges
+
+
 async def build_graph(
     level: Literal["documents", "chunks"],
     collection: str | None,
@@ -209,8 +281,10 @@ async def build_graph(
     k: int,
     folder_id: str | None = None,
     principal: Principal | None = None,
+    view: Literal["auto", "all", "groups"] = "auto",
+    group: int | None = None,
 ) -> dict:
-    """folder_id: só as notas dessa pasta e das subpastas (plan-web-23)."""
+    """folder_id: só as notas dessa pasta e das subpastas (plan-web-23). view/group: ver o docstring do módulo."""
     folder_ids = None
     if folder_id:
         reader = principal or Principal(actor="graph", scopes=frozenset({"read"}))
@@ -228,9 +302,43 @@ async def build_graph(
     counts: dict[str, int] = {}
     for n in nodes:
         counts[n["collection"]] = counts.get(n["collection"], 0) + 1
-    return {
+    payload: dict[str, Any] = {
         "level": level,
+        "view": "all",
+        "total_nodes": len(nodes),
         "collections": [{"name": name, "count": count} for name, count in sorted(counts.items())],
         "nodes": nodes,
         "edges": _merge_link_edges(_dedupe_edges(edges), base.explicit),
     }
+    if level != "documents" or not nodes:
+        return payload
+    layout = await graph_layout.get_layout(repr(base.stamp))
+    placed = []
+    for n in nodes:
+        at = layout.index.get(n["id"])
+        # cópia: base.nodes fica em cache e é compartilhado entre requisições
+        placed.append(
+            {
+                **n,
+                "x": round(float(layout.xy[at, 0]), 1),
+                "y": round(float(layout.xy[at, 1]), 1),
+                "group": int(layout.cluster[at]),
+            }
+            if at is not None
+            else n
+        )
+    payload["nodes"] = placed
+    if group is not None:
+        keep = {n["id"] for n in placed if n.get("group") == group}
+        payload["nodes"] = [n for n in placed if n["id"] in keep]
+        payload["edges"] = [e for e in payload["edges"] if e["source"] in keep and e["target"] in keep]
+        payload["view"] = "group"
+        payload["group"] = {
+            "id": group,
+            "label": layout.labels[group] if group < len(layout.labels) else "—",
+            "size": len(keep),
+        }
+    elif view == "groups" or (view == "auto" and len(placed) > GROUPS_AUTO_MIN):
+        payload["nodes"], payload["edges"] = _group_view(placed, payload["edges"], layout.labels)
+        payload["view"] = "groups"
+    return payload

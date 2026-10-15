@@ -32,6 +32,8 @@ const state = {
   connectFrom: null, // nó de origem escolhido no modo conectar
   showSemantic: true, // grafo: mostrar arestas de similaridade além dos links explícitos
   graphMode: "2d", // grafo: "2d" (canvas) | "3d" (WebGL, carregado sob demanda)
+  graphView: "auto", // grafo: "auto" (grupos se a base for grande) | "groups" | "all"
+  graphGroup: null, // grafo: grupo aberto ({ id, label, size }) ou null
   linkScale: 1, // grafo: multiplicador da espessura das arestas (0.3–3)
 };
 
@@ -53,6 +55,12 @@ function colorFor(collection) {
     state.colors.set(collection, palette[state.colors.size % palette.length]);
   }
   return state.colors.get(collection);
+}
+
+// cor de um grupo de assunto do grafo: mesma paleta das coleções, por índice (não ocupa cor de coleção)
+function groupColor(i) {
+  const palette = currentCollectionPalette();
+  return palette[i % palette.length];
 }
 
 function resetCollectionColors() {
@@ -85,4 +93,4 @@ const store = {
   },
 };
 
-export { state, colorFor, resetCollectionColors, store };
+export { state, colorFor, groupColor, resetCollectionColors, store };

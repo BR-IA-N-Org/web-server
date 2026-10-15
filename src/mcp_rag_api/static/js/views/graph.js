@@ -4,7 +4,7 @@ import { t } from "../i18n.js";
 import { graphTheme } from "../theme.js";
 import { icon, loadIcons } from "../icons.js";
 import { escHtml, debounce, scrollArrows } from "../ui.js";
-import { state, colorFor, store } from "../state.js";
+import { state, colorFor, groupColor, store } from "../state.js";
 import { on } from "../events.js";
 import { closePanel, openConnectModal, openDocumentPanel } from "./docpanel.js";
 import { loaderHtml } from "../loader.js";
@@ -58,6 +58,10 @@ function graphTemplate() {
         <div class="strip-wrap">
           <div class="toolbar graph-toolbar" id="graph-toolbar">
             <div id="f-location"></div>
+            <div class="seg hidden" id="f-view" role="radiogroup" aria-label="${t("graph.view")}">
+              <button data-view="groups" role="radio" aria-checked="false" title="${t("graph.viewGroupsTitle")}">${t("graph.viewGroups")}</button>
+              <button data-view="all" role="radio" aria-checked="false">${t("graph.viewAll")}</button>
+            </div>
             <div class="field">${icon("sliders-horizontal")}<label for="f-sim">${t("graph.similarity")} <span id="f-sim-val" class="mono">${state.minSimilarity.toFixed(2)}</span></label>
               <input type="range" id="f-sim" min="0" max="0.95" step="0.05" value="${state.minSimilarity}" />
             </div>
@@ -89,6 +93,7 @@ function graphTemplate() {
           <div class="empty-state" id="graph-empty">${loaderHtml(t("graph.loading"))}</div>
           <div class="legend hidden" id="graph-legend"></div>
           <div class="graph-notice hidden" id="graph-notice" role="status"></div>
+          <div class="graph-crumb hidden" id="graph-crumb"></div>
           <div class="graph-hint hidden" id="graph-hint">${state.graphMode === "3d" ? t("graph.hint3d") : t("graph.hint")}</div>
           <div class="graph-zoom hidden" id="graph-zoom">
             <button class="icon-btn" id="zoom-fit" title="${t("graph.sync")}">${icon("refresh-cw")}</button>
@@ -110,6 +115,7 @@ function bindGraphControls() {
     onChange: ({ collection, folderId }) => {
       state.collection = collection;
       state.folderId = folderId;
+      state.graphGroup = null;
       loadGraph();
     },
   });
@@ -128,6 +134,20 @@ function bindGraphControls() {
   });
   main.querySelector("#f-k").addEventListener("change", (e) => {
     state.k = Number(e.target.value);
+    loadGraph();
+  });
+  // base grande: grupos por assunto (padrão) ou todas as notas
+  main.querySelector("#f-view").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-view]");
+    if (!btn) return;
+    state.graphView = btn.dataset.view;
+    state.graphGroup = null;
+    loadGraph();
+  });
+  main.querySelector("#graph-crumb").addEventListener("click", (e) => {
+    if (!e.target.closest("[data-back-groups]")) return;
+    state.graphGroup = null;
+    state.graphView = "groups";
     loadGraph();
   });
   main.querySelector("#f-level").addEventListener("click", (e) => {
@@ -271,6 +291,9 @@ async function loadGraph() {
         folder_id: state.folderId || "",
         min_similarity: state.minSimilarity,
         k: state.k,
+        // destaque da busca precisa das notas, não dos grupos
+        view: state.highlightDocs?.size ? "all" : state.graphView,
+        group: state.graphGroup ? state.graphGroup.id : "",
       }),
       state.graphMode === "3d" ? load3dLibrary() : null,
     ]);
@@ -285,8 +308,9 @@ async function loadGraph() {
     graphMessage(t("graph.empty"));
     return;
   }
+  if (data.view === "group") state.graphGroup = data.group;
   drawGraph(data);
-  explainMissingEdges(data, req);
+  if (data.view !== "groups") explainMissingEdges(data, req);
 }
 
 // O 3D (three.js embutido, ~1,4 MB) só é baixado quando a pessoa escolhe 3D. O caminho é derivado
@@ -396,6 +420,12 @@ function buildView(data) {
   const isHl = (n) => Boolean(highlight && highlight.has(nodeKey(n)));
   const visibleEdges = state.showSemantic ? data.edges : data.edges.filter((e) => e.kind === "link");
   const big = data.nodes.length > BIG_NODES || visibleEdges.length > BIG_EDGES;
+  // visão de grupos: um nó por assunto (tamanho = nº de notas), arestas = quantas ligações entre grupos
+  const groups = data.view === "groups";
+  // posições vindas do servidor (plan-web-26): sem física no navegador
+  const serverLayout = data.nodes.length > 0 && data.nodes.every((n) => Number.isFinite(n.x) && Number.isFinite(n.y));
+  const maxSize = groups ? Math.max(1, ...data.nodes.map((n) => n.size || 1)) : 1;
+  const maxWeight = groups ? Math.max(1, ...visibleEdges.map((e) => e.weight || 1)) : 1;
 
   const degree = new Map();
   const neighbors = new Map();
@@ -424,6 +454,7 @@ function buildView(data) {
     link: `rgba(${colors.accentRgb}, 0.85)`,
     linkFocus: `rgba(${colors.accentRgb}, 1)`,
     accent: `rgba(${colors.accentRgb}, 0.6)`,
+    group: `rgba(${colors.edgeRgb}, 0.32)`,
   };
 
   // foco: nó em hover (ou origem do modo conectar) + vizinhos diretos
@@ -439,6 +470,7 @@ function buildView(data) {
 
   const radius = (n) => {
     if (n.__r !== undefined) return n.__r;
+    if (groups) return 8 + 30 * Math.sqrt((n.size || 1) / maxSize);
     const deg = degree.get(n.id) || 0;
     const base = state.level === "documents" ? Math.min(14, 3.5 + 1.7 * Math.sqrt(deg) + 0.6 * Math.sqrt(n.chunks || 1)) : 3.5 + Math.sqrt(deg);
     return isHl(n) ? base * 1.4 : base;
@@ -461,6 +493,7 @@ function buildView(data) {
     if (f && !linkTouchesFocus(l)) return C.faint;
     if (highlight && !(isHl(l.source) && isHl(l.target))) return C.faint;
     if (state.legendHover && !(l.source?.collection === state.legendHover && l.target?.collection === state.legendHover)) return C.legendFaint;
+    if (l.kind === "group") return f ? C.accent : C.group;
     if (l.kind === "link") return f ? C.linkFocus : C.link;
     if (f || highlight) return C.accent;
     // similaridade: discreta, mais visível quanto mais forte
@@ -468,11 +501,11 @@ function buildView(data) {
   };
 
   const linkWidth = (l) => {
-    const base = l.kind === "link" ? 1.8 : semanticWidth[levelOf(l)];
+    const base = l.kind === "group" ? 1 + 4 * Math.sqrt((l.weight || 1) / maxWeight) : l.kind === "link" ? 1.8 : semanticWidth[levelOf(l)];
     return base * state.linkScale * (linkTouchesFocus(l) ? 1.5 : 1);
   };
 
-  return { colors, highlight, isHl, nodeKey, visibleEdges, big, linkTouchesFocus, degree, neighbors, radius, nodeDimmed, nodeColor, linkColor, linkWidth, inFocus, focusId };
+  return { colors, highlight, isHl, nodeKey, visibleEdges, big, groups, serverLayout, linkTouchesFocus, degree, neighbors, radius, nodeDimmed, nodeColor, linkColor, linkWidth, inFocus, focusId };
 }
 
 // Reaplica cores/espessuras sem recarregar do servidor (hover, legenda, slider de espessura).
@@ -512,7 +545,7 @@ function create2dGraph(el) {
       viewBounds = { x0: a.x - m, y0: a.y - m, x1: b.x + m, y1: b.y + m };
     })
     .onEngineStop(() => {
-      savePositions(g.graphData().nodes);
+      if (!view?.serverLayout) savePositions(g.graphData().nodes);
       if (state.graphSettling) {
         // grafo grande assentou: agora entram as arestas de similaridade (reatribuir força o redesenho)
         state.graphSettling = false;
@@ -603,8 +636,8 @@ function drawLabels2d(ctx, scale, g) {
     const isFocus = focused && v.inFocus(n);
     const hovered = n === hoveredNode;
     // sem foco e longe demais: só os nós grandes
-    if (!focused && scale < 0.55 && (v.degree.get(n.id) || 0) < 6) continue;
-    const max = hovered ? 64 : 30;
+    if (!v.groups && !focused && scale < 0.55 && (v.degree.get(n.id) || 0) < 6) continue;
+    const max = hovered ? 64 : v.groups ? 44 : 30;
     const text = n.label.length > max ? n.label.slice(0, max - 1) + "…" : n.label;
     const weight = hovered ? 600 : 500;
     const w = measureLabel(ctx, text, weight) / scale;
@@ -636,7 +669,8 @@ function draw2d(g, nodes, links) {
     .nodeCanvasObjectMode(() => "replace")
     .nodeCanvasObject((n, ctx, scale) => {
       if (v.big && !onScreen(n)) return;
-      const r = n.__r;
+      // grafo grande visto de longe: nó com pelo menos ~2 px na tela (senão vira poeira)
+      const r = v.big ? Math.max(n.__r, 2 / scale) : n.__r;
       const hovered = state.hoverNode === n || state.connectFrom === n;
       const dim = v.nodeDimmed(n);
       // halo: discreto em todos, forte no foco (cores montadas uma vez por carga em drawGraph).
@@ -651,6 +685,8 @@ function draw2d(g, nodes, links) {
       ctx.arc(n.x, n.y, r, 0, 2 * Math.PI);
       ctx.fillStyle = v.nodeColor(n);
       ctx.fill();
+      // grafo grande: nó com menos de ~3 px na tela fica sem contorno (um traço a menos por nó)
+      if (v.big && r * scale < 3) return;
       ctx.lineWidth = 1.5 / scale;
       ctx.strokeStyle = v.colors.nodeStroke;
       // contorno esmaece junto com o nó (no tema claro o anel escuro pesava sobre o nó apagado)
@@ -678,13 +714,16 @@ function draw2d(g, nodes, links) {
     // grafo grande: parte da física roda antes do 1º quadro (sem pintar) e o resfriamento é mais rápido —
     // menos ticks no total (cada tick custa ~20 ms com ~6 mil nós). Com o layout salvo as forças já estão
     // quase em equilíbrio: poucos ticks bastam
-    .warmupTicks(v.restored ? 0 : v.big ? 40 : 0)
-    .cooldownTicks(v.restored ? (v.big ? 20 : 40) : v.big ? 50 : 120)
-    .d3AlphaDecay(v.big ? 0.035 : 0.0228);
+    .warmupTicks(v.serverLayout || v.restored ? 0 : v.big ? 40 : 0)
+    .cooldownTicks(v.serverLayout ? 0 : v.restored ? (v.big ? 20 : 40) : v.big ? 50 : 120)
+    .d3AlphaDecay(v.big ? 0.035 : 0.0228)
+    // layout do servidor: o mapa é fixo (arrastar exigiria rodar a física)
+    .enableNodeDrag(!v.serverLayout)
+    .nodeLabel(v.groups ? groupTooltip : () => "");
   // repulsão (Barnes-Hut) é o grosso da física: no grafo grande agrupa nós mais distantes (theta),
   // ~25% mais barato por tick, quase sem diferença visual
   g.d3Force("charge").theta(v.big ? 1.2 : 0.9);
-  state.graphSettling = v.big;
+  state.graphSettling = v.big && !v.serverLayout;
   setLinkForces(g);
   g.graphData({ nodes, links });
 }
@@ -765,12 +804,22 @@ function drawGraph(data) {
   clearBtn.classList.toggle("hidden", !view.highlight);
   if (view.highlight) clearBtn.querySelector("span").textContent = t("graph.clearHighlightN", { count: view.highlight.size });
 
-  // 2D: nós voltam para onde estavam da última vez (layout salvo no navegador)
-  const saved = state.graphMode === "3d" ? {} : store.get(`${POSITIONS_KEY}:${state.level}`) || {};
+  // 2D sem layout do servidor (ex.: nível chunks): nós voltam para onde estavam da última vez (navegador)
+  const saved = state.graphMode === "3d" || view.serverLayout ? {} : store.get(`${POSITIONS_KEY}:${state.level}`) || {};
   let restored = 0;
+  // grupos: as posições vêm na escala do mapa de notas (milhares de unidades); reescala para um desenho
+  // do tamanho dos grupos, senão as bolhas (raio 8–38) somem no enquadramento
+  if (view.groups && data.nodes.length > 1) {
+    const xs = data.nodes.map((n) => n.x);
+    const ys = data.nodes.map((n) => n.y);
+    const span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) || 1;
+    const k = (140 * Math.sqrt(data.nodes.length)) / span;
+    data.nodes = data.nodes.map((n) => ({ ...n, x: n.x * k, y: n.y * k }));
+  }
   const nodes = data.nodes.map((n) => {
-    const color = colorFor(n.collection);
-    const node = { ...n, color, label: state.level === "documents" ? n.title : `${n.title} · #${n.chunk_index}` };
+    const color = view.groups ? groupColor(n.group) : colorFor(n.collection);
+    const label = view.groups ? `${n.title} · ${n.size}` : state.level === "documents" ? n.title : `${n.title} · #${n.chunk_index}`;
+    const node = { ...n, color, label, isGroup: view.groups };
     // por carga, não por quadro: cor esmaecida, halos e raio (grau e destaque não mudam até a próxima carga)
     const haloBase = view.highlight && view.isHl(node) ? view.colors.accent : color;
     node.__dim = hexAlpha(color, 0.2);
@@ -785,14 +834,18 @@ function drawGraph(data) {
     return node;
   });
   view.restored = nodes.length > 0 && restored / nodes.length >= 0.8;
+  if (view.groups) separateBubbles(nodes);
   const linkEdges = data.edges.filter((e) => e.kind === "link");
   const semanticEdges = data.edges.filter((e) => e.kind === "semantic");
-  document.getElementById("graph-sub").textContent = t("graph.sub", {
-    nodes: nodes.length,
-    links: linkEdges.length,
-    semantic: semanticEdges.length,
-    level: state.level === "documents" ? t("graph.levelDocuments") : t("graph.levelChunks"),
-  });
+  document.getElementById("graph-sub").textContent = view.groups
+    ? t("graph.subGroups", { groups: nodes.length, notes: data.total_nodes })
+    : t("graph.sub", {
+        nodes: nodes.length,
+        links: linkEdges.length,
+        semantic: semanticEdges.length,
+        level: state.level === "documents" ? t("graph.levelDocuments") : t("graph.levelChunks"),
+      });
+  renderViewControls(data);
 
   // instância do modo errado (troca 2D ↔ 3D): recria
   if (state.graphInstance && state.graphInstanceMode !== state.graphMode) {
@@ -812,8 +865,10 @@ function drawGraph(data) {
     const cut = sims.length > LOD_EDGES ? sims[LOD_EDGES - 1] : -Infinity;
     for (const l of links) l.__lod = l.kind === "link" || l.similarity >= cut;
   }
-  // destacados (testador de busca) primeiro, depois por nº de conexões
-  view.labelOrder = [...nodes].sort((a, b) => view.isHl(b) - view.isHl(a) || (view.degree.get(b.id) || 0) - (view.degree.get(a.id) || 0));
+  // destacados (testador de busca) primeiro, depois por nº de conexões (grupos: os maiores)
+  view.labelOrder = view.groups
+    ? [...nodes].sort((a, b) => b.size - a.size)
+    : [...nodes].sort((a, b) => view.isHl(b) - view.isHl(a) || (view.degree.get(b.id) || 0) - (view.degree.get(a.id) || 0));
   if (state.graphMode === "3d") draw3d(state.graphInstance, nodes, links);
   else draw2d(state.graphInstance, nodes, links);
 
@@ -837,7 +892,7 @@ function drawGraph(data) {
       .join("")}
     ${state.collection ? `<button class="legend-all" type="button" data-col="">${icon("x", 12)}<span>${t("legend.allCollections")}</span></button>` : ""}
     ${
-      state.level === "documents"
+      state.level === "documents" && !view.groups
         ? `<div class="legend-head legend-sep">${t("legend.connections")}</div>
       <div class="legend-edge"><span class="edge-swatch link"></span><span class="legend-name">${t("legend.explicit")}</span>
         <span class="count">${linkEdges.length}</span></div>
@@ -851,6 +906,64 @@ function drawGraph(data) {
   applyLegendCollapsed(legend);
   loadIcons(legend);
   for (const id of ["graph-legend", "graph-hint", "graph-zoom"]) document.getElementById(id).classList.remove("hidden");
+}
+
+// Grupos vizinhos no mapa podem se sobrepor: afasta pares de bolhas que se tocam (poucas dezenas de
+// grupos: O(g²) por passo é desprezível). Mantém a vizinhança, só abre espaço entre elas.
+function separateBubbles(nodes, gap = 6) {
+  for (let pass = 0; pass < 80; pass++) {
+    let moved = false;
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i];
+        const b = nodes[j];
+        let dx = b.x - a.x;
+        let dy = b.y - a.y;
+        const dist = Math.hypot(dx, dy) || 0.01;
+        const need = a.__r + b.__r + gap;
+        if (dist >= need) continue;
+        if (dist === 0.01) dx = 1;
+        const push = (need - dist) / 2;
+        dx /= dist;
+        dy /= dist;
+        a.x -= dx * push;
+        a.y -= dy * push;
+        b.x += dx * push;
+        b.y += dy * push;
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+}
+
+// Seletor Grupos / Todas as notas (só em base grande ou com um grupo aberto) e o "voltar" do grupo aberto.
+function renderViewControls(data) {
+  const seg = document.getElementById("f-view");
+  const groupsShown = data.view === "groups" || data.view === "group";
+  // grupos só existem no nível documentos (o de chunks não tem layout do servidor)
+  seg.classList.toggle("hidden", state.level !== "documents" || (!groupsShown && (data.total_nodes || 0) <= BIG_NODES));
+  seg.querySelectorAll("[data-view]").forEach((b) => {
+    const on = (b.dataset.view === "groups") === groupsShown;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-checked", String(on));
+  });
+  const crumb = document.getElementById("graph-crumb");
+  crumb.classList.toggle("hidden", data.view !== "group");
+  if (data.view === "group") {
+    crumb.innerHTML = `
+      <button class="btn sm" type="button" data-back-groups>${icon("chevron-left", 14)}<span>${t("graph.backToGroups")}</span></button>
+      <span class="graph-crumb-label"><span class="dot" style="background:${groupColor(data.group.id)}"></span>${escHtml(data.group.label)}
+        <span class="muted">· ${t("graph.groupNotes", { count: data.group.size })}</span></span>`;
+    loadIcons(crumb);
+  }
+  document.getElementById("graph-hint").textContent = state.graphMode === "3d" ? t("graph.hint3d") : data.view === "groups" ? t("graph.hintGroups") : t("graph.hint");
+}
+
+// tooltip do grupo: rótulo, tamanho e as notas mais conectadas
+function groupTooltip(n) {
+  const top = (n.top || []).map((title) => `<br>· ${escHtml(title.length > 60 ? title.slice(0, 59) + "…" : title)}`).join("");
+  return `<strong>${escHtml(n.title)}</strong><br><span class="muted">${t("graph.groupNotes", { count: n.size })} · ${t("graph.clickToOpen")}</span>${top}`;
 }
 
 // centraliza o nó no grafo (se o grafo estiver aberto) ao navegar por um link do painel
@@ -894,6 +1007,11 @@ function connectNotice(html) {
 }
 
 function onGraphNodeClick(n) {
+  if (n.isGroup) {
+    state.graphGroup = { id: n.group, label: n.title, size: n.size };
+    loadGraph();
+    return;
+  }
   const docId = state.level === "documents" ? n.id : n.document_id;
   if (!state.connectMode) {
     openDocumentPanel(docId);
