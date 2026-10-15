@@ -76,6 +76,7 @@ async function renderNotesScreen(main, openId) {
   main.querySelector("#note-new")?.addEventListener("click", () => openNewNoteModal());
   main.querySelector("#folder-new")?.addEventListener("click", () => openNewFolderModal());
   main.querySelector("#note-import")?.addEventListener("click", () => openImportModal());
+  main.querySelector("#note-side").addEventListener("click", (e) => e.target.closest("[data-side-close]") && setNoteSide(null));
   main.querySelector("#notes-tree-list").addEventListener("click", async (e) => {
     const addNote = e.target.closest("[data-folder-add-note]");
     const menu = e.target.closest("[data-folder-menu]");
@@ -102,6 +103,14 @@ async function renderNotesScreen(main, openId) {
   if (exists) await openNote(target);
   else if (notes.tree.notes.length) await openNote(notes.tree.notes[0].id);
   else renderNotesEmpty();
+  // no celular a tela começa pela lista; só um link direto (#/notes/<id>) entra na nota
+  if (!openId) showNoteView(false);
+}
+
+// celular: árvore e nota não cabem lado a lado, a tela mostra uma ou outra (CSS em .show-note).
+// No desktop a classe não muda nada.
+function showNoteView(on) {
+  document.querySelector(".notes-layout")?.classList.toggle("show-note", on);
 }
 
 // sai da tela de notas: salva o que estiver pendente e desmonta o editor
@@ -361,7 +370,10 @@ function renderNotesEmpty() {
 /* ---------- abrir / editar / salvar */
 
 async function openNote(id) {
-  if (notes.current?.id === id) return;
+  if (notes.current?.id === id) {
+    showNoteView(true);
+    return;
+  }
   if (notes.current && notes.dirty && !(await saveNote())) {
     const leave = await uiConfirm({
       title: t("notes.saveFailedTitle"),
@@ -385,6 +397,7 @@ async function openNote(id) {
   if (location.hash !== `#/notes/${id}`) history.replaceState(null, "", `#/notes/${id}`);
   renderNoteMain();
   renderNotesTree();
+  showNoteView(true);
   if (notes.side) renderNoteSide(notes.side);
   await offerDraftRecovery();
 }
@@ -395,6 +408,7 @@ function renderNoteMain() {
   const editable = canEdit();
   main.innerHTML = `
     <div class="note-head">
+      <button class="icon-btn note-back" type="button" id="note-back" title="${t("notes.backToList")}" aria-label="${t("notes.backToList")}">${icon("chevron-left", 18)}</button>
       <input class="note-title" id="note-title" value="${escHtml(n.title)}" placeholder="${t("notes.untitled")}" ${editable ? "" : "readonly"} />
       <div class="note-actions">
         <span class="save-state" id="save-state"></span>
@@ -440,12 +454,9 @@ function renderNoteMain() {
     main.querySelector("#note-move").addEventListener("click", openMoveNoteModal);
     main.querySelector("#note-archive").addEventListener("click", archiveCurrentNote);
   }
+  main.querySelector("#note-back").addEventListener("click", () => showNoteView(false));
   main.querySelectorAll("[data-side]").forEach((b) =>
-    b.addEventListener("click", () => {
-      notes.side = notes.side === b.dataset.side ? null : b.dataset.side;
-      main.querySelectorAll("[data-side]").forEach((x) => x.classList.toggle("active", x.dataset.side === notes.side));
-      renderNoteSide(notes.side);
-    }),
+    b.addEventListener("click", () => setNoteSide(notes.side === b.dataset.side ? null : b.dataset.side)),
   );
   setSaveState(notes.dirty ? "dirty" : "saved");
 }
@@ -988,6 +999,15 @@ async function archiveCurrentNote() {
 
 /* ---------- painel lateral: conexões e histórico */
 
+function setNoteSide(kind) {
+  notes.side = kind;
+  document.querySelectorAll("#note-main [data-side]").forEach((x) => x.classList.toggle("active", x.dataset.side === kind));
+  renderNoteSide(kind);
+}
+
+// fechar: no celular o painel cobre a nota e os botões que o abriram
+const sideClose = () => `<button class="icon-btn side-close" type="button" data-side-close title="${t("common.close")}" aria-label="${t("common.close")}">${icon("x", 16)}</button>`;
+
 async function renderNoteSide(kind) {
   const side = document.getElementById("note-side");
   if (!side) return;
@@ -1008,6 +1028,7 @@ async function renderNoteSide(kind) {
     side.innerHTML = `
       <div class="side-head"><h3>${icon("link", 15)} ${t("notes.connections")}</h3>
         ${state.user?.role === "admin" ? `<button class="btn sm ghost" type="button" id="side-connect">${icon("plus", 13)}<span>${t("side.connectTo")}</span></button>` : ""}
+        ${sideClose()}
       </div>
       <div class="links-label">${t("side.links", { count: rel.links.length })}</div>
       ${
@@ -1031,7 +1052,7 @@ async function renderNoteSide(kind) {
       return;
     }
     side.innerHTML = `
-      <div class="side-head"><h3>${icon("history", 15)} ${t("notes.history")}</h3></div>
+      <div class="side-head"><h3>${icon("history", 15)} ${t("notes.history")}</h3>${sideClose()}</div>
       ${versions
         .map(
           (v) => `

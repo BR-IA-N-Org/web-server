@@ -151,8 +151,8 @@ function agentCard(a, isAdmin) {
                  <button class="btn sm ghost" data-autonomy="${escHtml(a.slug)}" data-on="${a.auto_apply_updates}" title="${t("agents.autonomyBtnTitle")}">
                    ${icon("zap", 14)}<span>${a.auto_apply_updates ? t("agents.autonomyOn") : t("agents.autonomyOff")}</span>
                  </button>
-                 <button class="btn sm" type="button" data-manage="${escHtml(a.slug)}" data-tab="keys">${icon("key-round", 14)}<span>${t("agents.keys")}</span></button>
-                 <button class="btn sm" type="button" data-manage="${escHtml(a.slug)}" data-tab="profile">${icon("pencil", 14)}<span>${t("agents.edit")}</span></button>
+                 <button class="btn sm" type="button" data-manage="${escHtml(a.slug)}" data-tab="keys" title="${t("agents.keys")}">${icon("key-round", 14)}<span>${t("agents.keys")}</span></button>
+                 <button class="btn sm" type="button" data-manage="${escHtml(a.slug)}" data-tab="profile" title="${t("agents.edit")}">${icon("pencil", 14)}<span>${t("agents.edit")}</span></button>
                </div>`
             : `<span class="muted">${a.auto_apply_updates ? t("agents.autonomous") : t("agents.underReview")}</span>`
         }
