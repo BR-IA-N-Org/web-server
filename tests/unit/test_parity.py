@@ -21,6 +21,7 @@ TOOL_ROUTES: dict[str, tuple[str, str]] = {
     "delete_collection": ("DELETE", "/collections/{name}"),
     "add_document": ("POST", "/documents"),
     "update_document": ("PATCH", "/documents/{document_id}"),
+    "edit_document": ("POST", "/documents/{document_id}/edit"),
     "upsert_document": ("PUT", "/documents/upsert"),
     "archive_document": ("DELETE", "/documents/{document_id}"),
     "document_history": ("GET", "/documents/{document_id}/versions"),
