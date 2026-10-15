@@ -731,6 +731,52 @@ select option {
   white-space: nowrap;
 }
 
+/* cabeçalho "Coleções" é o botão de minimizar a legenda (a seta gira quando está aberta) */
+.legend-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.legend-toggle:hover {
+  color: var(--text);
+}
+
+.legend-toggle > [data-icon] {
+  transform: rotate(90deg);
+  transition: transform 0.15s;
+}
+
+.legend-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.legend.collapsed {
+  min-width: 0;
+  padding: 6px 4px;
+}
+
+.legend.collapsed .legend-toggle {
+  padding-bottom: 0;
+}
+
+.legend.collapsed .legend-toggle > [data-icon] {
+  transform: none;
+}
+
+.legend.collapsed .legend-body {
+  display: none;
+}
+
 .legend-all {
   margin-top: 2px;
   color: var(--text-dim);
@@ -1418,6 +1464,22 @@ select option {
   font-weight: 500;
   color: var(--text);
   margin-bottom: 6px;
+  /* linhas do mesmo tamanho: sem uma palavra sozinha na última linha */
+  text-wrap: balance;
+}
+
+.results-empty {
+  text-wrap: pretty;
+}
+
+/* nome de ferramenta no texto de apoio (search_knowledge): etiqueta de código que não quebra */
+.results-empty .mono {
+  white-space: nowrap;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(var(--fg-rgb), 0.05);
+  color: var(--text-body);
 }
 
 .result {
@@ -3487,6 +3549,28 @@ button.kpi:focus-visible .kpi-icon {
   margin: 14px 18px 16px;
 }
 
+/* "Ver mais" abaixo do gráfico de barras; some quando a tabela está aberta (ela já lista tudo) */
+.viz-more {
+  display: flex;
+  justify-content: center;
+  margin: -6px 18px 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.viz-more [data-icon] {
+  transform: rotate(90deg);
+  transition: transform 0.15s;
+}
+
+.viz-more [aria-expanded="true"] [data-icon] {
+  transform: rotate(-90deg);
+}
+
+.viz-body.hidden ~ .viz-more {
+  display: none;
+}
+
 #viz-recent > .viz-body {
   margin: 6px 0 6px;
 }
@@ -4729,5 +4813,770 @@ table.dt .num {
 @media (prefers-reduced-motion: reduce) {
   .loc-caret {
     transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------- celular (plan-web-25)
+   Até 760px: a sidebar vira barra de abas no rodapé (o menu do usuário abre do avatar, à direita),
+   o conteúdo ocupa a tela inteira, notas alternam entre lista e nota (.show-note, js/views/notes.js),
+   painéis laterais viram folhas por cima do conteúdo e tabelas viram cartões empilhados.
+   Fica no fim do arquivo de propósito: sobrepõe as regras de desktop pela cascata. */
+
+/* botões que só existem no celular */
+.note-back,
+.side-close {
+  display: none;
+}
+
+/* toque não tem hover: as ações das pastas ficam sempre visíveis */
+@media (hover: none) {
+  .tree-folder-tools {
+    display: inline-flex;
+  }
+
+  .kpi-go,
+  .recent-go {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* tablet: sidebar só com ícones (o rótulo fica no title do botão) */
+@media (min-width: 761px) and (max-width: 1024px) {
+  :root {
+    --sidebar-w: 60px;
+  }
+
+  .sidebar {
+    padding-inline: 8px;
+  }
+
+  .sidebar .brand {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .sidebar .brand > span,
+  .nav-item > span:not([data-icon]),
+  .user-trigger .who,
+  .user-trigger > [data-icon] {
+    display: none;
+  }
+
+  .nav-item,
+  .user-trigger {
+    justify-content: center;
+    padding-inline: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  :root {
+    --gutter: 16px;
+  }
+
+  /* ---------- shell: conteúdo em cima, abas embaixo */
+  #app,
+  .app,
+  .login-wrap {
+    height: 100dvh;
+  }
+
+  .app {
+    flex-direction: column;
+  }
+
+  .content {
+    order: 0;
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .sidebar {
+    order: 1;
+    width: auto;
+    flex: none;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 2px;
+    padding: 4px 6px calc(4px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+  }
+
+  .sidebar .brand,
+  .nav-spacer {
+    display: none;
+  }
+
+  #nav {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    gap: 2px;
+  }
+
+  .nav-item {
+    flex: 1 1 0;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding: 7px 2px 5px;
+    font-size: 10.5px;
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  .nav-item > span:not([data-icon]) {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .nav-item [data-icon] svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .user-footer {
+    display: flex;
+    flex: none;
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .user-trigger {
+    width: auto;
+    justify-content: center;
+    padding: 6px 10px;
+  }
+
+  .user-trigger .who,
+  .user-trigger > [data-icon] {
+    display: none;
+  }
+
+  .user-menu {
+    left: auto;
+    right: 0;
+    min-width: min(290px, calc(100vw - 12px));
+    max-height: calc(100dvh - 90px);
+    overflow-y: auto;
+    bottom: calc(100% + 8px);
+  }
+
+  .menu-item {
+    padding: 10px;
+  }
+
+  /* ---------- cabeçalho e margens das páginas */
+  .page-header {
+    flex-wrap: wrap;
+    row-gap: 2px;
+    padding: 14px var(--gutter) 8px;
+  }
+
+  .page-header h1 {
+    font-size: 17px;
+  }
+
+  .page-header .sub {
+    flex-basis: 100%;
+    font-size: 12.5px;
+    line-height: 1.4;
+  }
+
+  .toolbar,
+  .list,
+  .form-grid,
+  .stats {
+    padding-left: var(--gutter);
+    padding-right: var(--gutter);
+  }
+
+  .banner {
+    margin-left: var(--gutter);
+    margin-right: var(--gutter);
+  }
+
+  .page-col,
+  .search-col,
+  .overview-col {
+    padding-left: var(--gutter);
+    padding-right: var(--gutter);
+  }
+
+  .section-head {
+    flex-wrap: wrap;
+  }
+
+  /* iOS amplia a página ao focar campo com fonte < 16px */
+  input[type="text"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  select,
+  textarea,
+  .input {
+    font-size: 16px;
+  }
+
+  /* ---------- painel (gráficos) */
+  .overview-filters {
+    flex-wrap: wrap;
+  }
+
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .kpi {
+    padding: 12px 12px 13px;
+  }
+
+  .kpi-value {
+    font-size: 22px;
+  }
+
+  .viz-card-head {
+    padding: 12px 14px 10px;
+  }
+
+  .viz-card > .viz-body,
+  .viz-card > .viz-table {
+    margin: 12px 14px 14px;
+  }
+
+  .recent-row {
+    padding: 10px 14px;
+  }
+
+  /* ---------- busca */
+  .composer {
+    gap: 8px;
+    padding: 6px 6px 6px 14px;
+    border-radius: 14px;
+  }
+
+  .composer > [data-icon] {
+    display: none;
+  }
+
+  .search-scope {
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+
+  .results-empty {
+    max-width: 34ch;
+    margin-inline: auto;
+    padding: 36px 4px;
+    font-size: 13.5px;
+  }
+
+  .results-empty-title {
+    font-size: 18px;
+    line-height: 1.35;
+    margin-bottom: 8px;
+  }
+
+  .result {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .result-meta {
+    flex-wrap: wrap;
+    gap: 6px 12px;
+  }
+
+  .loc-trigger {
+    max-width: 100%;
+  }
+
+  /* fixed: ocupa a largura da tela sem vazar pela direita nem ser cortado pela faixa rolável do grafo;
+     sem top, fica logo abaixo do botão (posição estática) */
+  .loc-pop {
+    position: fixed;
+    top: auto;
+    left: var(--gutter);
+    right: var(--gutter);
+    width: auto;
+  }
+
+  /* ---------- painel do documento (grafo e busca): folha por cima do conteúdo */
+  .split > .panel {
+    position: fixed;
+    z-index: 45;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: 12dvh;
+    width: auto;
+    padding: 18px var(--gutter) calc(18px + env(safe-area-inset-bottom));
+    border-left: 0;
+    border-top: 1px solid var(--border-strong);
+    border-radius: 16px 16px 0 0;
+    background: var(--bg-elevated);
+    box-shadow: 0 -16px 48px rgba(var(--shadow-rgb), 0.45);
+    animation: sheet-up 0.18s ease-out;
+  }
+
+  /* ---------- grafo: filtros numa faixa com rolagem lateral */
+  /* sem min-width: 0 a faixa sem quebra alarga a página e o canvas do grafo é medido maior que a tela */
+  .split > .page {
+    min-width: 0;
+  }
+
+  .graph-toolbar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    scrollbar-width: none;
+  }
+
+  .graph-toolbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .graph-toolbar > * {
+    flex: none;
+  }
+
+  /* bolinhas com seta nas pontas da faixa (scrollArrows em js/ui.js) */
+  .strip-wrap {
+    position: relative;
+  }
+
+  .strip-arrow {
+    position: absolute;
+    top: calc(50% - 2px);
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border-strong);
+    border-radius: 50%;
+    background: var(--bg-elevated);
+    color: var(--text);
+    box-shadow: 0 0 0 6px var(--bg), 0 4px 14px rgba(var(--shadow-rgb), 0.35);
+    transform: translateY(-50%);
+    cursor: pointer;
+    animation: fade-in 0.12s ease-out;
+  }
+
+  .strip-arrow.left {
+    left: 8px;
+  }
+
+  .strip-arrow.right {
+    right: 8px;
+  }
+
+  .strip-arrow:active {
+    background: var(--selected-bg);
+  }
+
+  .graph-wrap {
+    margin: 0 0 0;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    border-radius: 0;
+  }
+
+  .legend {
+    left: 8px;
+    bottom: 8px;
+    min-width: 0;
+    max-width: calc(100% - 64px);
+    max-height: 28%;
+    font-size: 11.5px;
+  }
+
+  .graph-hint {
+    display: none;
+  }
+
+  .graph-notice {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    max-width: none;
+    width: auto;
+  }
+
+  .graph-zoom {
+    right: 8px;
+    bottom: 8px;
+  }
+
+  /* ---------- notas: lista OU nota */
+  .notes-layout {
+    position: relative;
+  }
+
+  .notes-tree {
+    width: 100%;
+    border-right: 0;
+  }
+
+  .notes-layout.show-note .notes-tree,
+  .notes-layout:not(.show-note) .note-main,
+  .notes-layout:not(.show-note) .note-side {
+    display: none;
+  }
+
+  .notes-tree-head {
+    padding: 12px var(--gutter) 10px;
+  }
+
+  .notes-tree-actions .btn {
+    padding-block: 7px;
+  }
+
+  .notes-tree-list {
+    padding: 0 10px 16px;
+  }
+
+  .tree-note,
+  .tree-folder-head {
+    padding-top: 9px;
+    padding-bottom: 9px;
+    font-size: 14px;
+  }
+
+  .tree-tool {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* isolate: os z-index internos do Toast UI (até 40) não passam por cima do painel .note-side */
+  .note-main {
+    isolation: isolate;
+    padding: 8px 12px 10px;
+    gap: 6px;
+  }
+
+  /* linha 1: voltar + título; linha 2: ações */
+  .note-head {
+    gap: 2px 4px;
+  }
+
+  .note-back {
+    display: inline-flex;
+    margin-left: -6px;
+  }
+
+  .note-title {
+    flex: 1 1 0;
+    font-size: 18px;
+  }
+
+  /* ações só com ícone; o rótulo continua no title */
+  .note-actions {
+    flex: 1 1 100%;
+    gap: 2px;
+    margin-left: -6px;
+  }
+
+  /* "salvo há…" vai para a direita, colado no Salvar */
+  .note-actions .save-state {
+    order: 1;
+    margin-left: auto;
+  }
+
+  .note-actions #note-save {
+    order: 2;
+  }
+
+  .note-actions .btn > span:not([data-icon]) {
+    display: none;
+  }
+
+  .note-actions .btn.sm {
+    padding: 6px;
+  }
+
+  .note-meta {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .note-meta > * {
+    flex: none;
+  }
+
+  .note-path {
+    max-width: 70vw;
+  }
+
+  .toastui-editor-dark .toastui-editor-contents,
+  .toastui-editor-dark .toastui-editor-contents p,
+  .toastui-editor-dark .ProseMirror,
+  :root[data-theme="light"] .toastui-editor-contents,
+  :root[data-theme="light"] .toastui-editor-contents p,
+  :root[data-theme="light"] .ProseMirror {
+    font-size: 16px;
+  }
+
+  .note-side {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    width: auto;
+    border-left: 0;
+    padding: 14px var(--gutter);
+    animation: fade-in 0.12s ease-out;
+  }
+
+  .side-close {
+    display: inline-flex;
+  }
+
+  .side-item,
+  .side-version {
+    padding: 9px 8px;
+  }
+
+  /* ---------- tabelas (chaves, conexões, usuários, chaves/histórico do agente): cartões empilhados */
+  .data-table .trow,
+  .data-table .trow.users,
+  .data-table .trow.agent-keys,
+  .data-table .trow.agent-history,
+  .import-errors .trow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    padding: 12px 14px;
+  }
+
+  .data-table .trow > .tcell-main {
+    flex: 1 1 100%;
+  }
+
+  /* depois do display: flex acima, que tem a mesma especificidade */
+  .data-table .trow.thead {
+    display: none;
+  }
+
+  .data-table .trow > .tcell {
+    display: flex;
+    flex: 0 1 auto;
+    max-width: 100%;
+    font-size: 12.5px;
+  }
+
+  /* metadados (datas, dono) em tinta secundária; chips e seletores mantêm a cor */
+  .data-table .trow > .tcell:not(:has(.chip, select, .status)) {
+    color: var(--text-dim);
+  }
+
+  .data-table .trow > .tcell-actions {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    margin-left: -10px;
+  }
+
+  .data-table .trow.agent-history > .tcell:nth-child(2) {
+    flex: 1 1 100%;
+    order: -1;
+    white-space: normal;
+    color: var(--text-body);
+  }
+
+  .trow .reset-row {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+  }
+
+  .trow .reset-row .pw-field,
+  .trow .reset-row .input {
+    flex: 1 1 100%;
+  }
+
+  .key-reveal-row {
+    flex-wrap: wrap;
+  }
+
+  /* ---------- agentes */
+  .agent-card {
+    padding: 14px;
+  }
+
+  /* cartão em grade: ícone + nome/descrição, chips, e as ações num rodapé próprio.
+     .agent-head vira "contents" para os filhos dele entrarem direto na grade */
+  .agent-card {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr);
+    grid-template-areas:
+      "icon main"
+      "meta meta"
+      "actions actions";
+    column-gap: 12px;
+    row-gap: 12px;
+  }
+
+  .agent-head {
+    display: contents;
+  }
+
+  .agent-head > .row-icon {
+    grid-area: icon;
+  }
+
+  .agent-head > .grow {
+    grid-area: main;
+  }
+
+  .agent-head .agent-desc {
+    margin-top: 4px;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .agent-meta {
+    grid-area: meta;
+    gap: 6px 10px;
+    padding-left: 0;
+    font-size: 12px;
+  }
+
+  .agent-meta > .grow {
+    display: none;
+  }
+
+  /* rodapé: Autonomia à esquerda, Chaves/Editar à direita; arquivado e não-admin mostram só o status */
+  .agent-head > .agent-actions,
+  .agent-head > .muted {
+    grid-area: actions;
+    margin: 0 -14px -14px;
+    padding: 8px 10px;
+    border-top: 1px solid var(--border);
+  }
+
+  .agent-head > .muted {
+    padding-inline: 14px;
+    font-size: 12.5px;
+  }
+
+  .agent-actions {
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  .agent-actions .btn {
+    flex: none;
+  }
+
+  /* em tela estreita o rótulo da autonomia encolhe com reticências (texto completo no title) */
+  .agent-actions [data-autonomy] {
+    flex: 0 1 auto;
+    min-width: 0;
+    margin-right: auto;
+    padding-inline: 6px;
+  }
+
+  .agent-actions [data-autonomy] > span:not([data-icon]) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* telas bem estreitas: Chaves/Editar só com ícone, para o status da autonomia caber inteiro */
+  @media (max-width: 400px) {
+    .agent-actions [data-manage] > span:not([data-icon]) {
+      display: none;
+    }
+
+    .agent-actions [data-manage] {
+      padding: 6px 9px;
+    }
+  }
+
+  .scope-grid,
+  .scope-grid.two,
+  .scope-grid.three {
+    grid-template-columns: 1fr;
+  }
+
+  .danger-zone {
+    flex-wrap: wrap;
+  }
+
+  .manage-tabs {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .manage-tabs button {
+    flex: none;
+  }
+
+  /* ---------- modais: folha que sobe do rodapé */
+  .modal-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal,
+  .modal.dialog {
+    width: 100%;
+    max-height: 92dvh;
+    border-radius: 16px 16px 0 0;
+    animation: sheet-up 0.18s ease-out;
+  }
+
+  .modal-head {
+    padding: 16px var(--gutter) 12px;
+  }
+
+  .modal-body {
+    padding: 16px var(--gutter);
+  }
+
+  .modal-foot {
+    flex-wrap: wrap;
+    padding: 12px var(--gutter) calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .modal-foot .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    padding-block: 9px;
+  }
+
+  .theme-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* ---------- login e consentimento OAuth */
+  .login-wrap {
+    padding: 16px;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 760px) and (prefers-reduced-motion: reduce) {
+  .modal,
+  .split > .panel {
+    animation: none;
   }
 }

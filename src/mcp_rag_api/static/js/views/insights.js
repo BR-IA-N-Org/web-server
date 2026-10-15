@@ -217,7 +217,10 @@ function meter(label, value, total, hint) {
 
 /* ---------- tela */
 
-function chartCard(id, title, subtitle, { wide = false } = {}) {
+// "Notas por pasta": as 10 maiores; o resto atrás do "Ver mais" (a tabela continua com todas)
+const FOLDERS_PREVIEW = 10;
+
+function chartCard(id, title, subtitle, { wide = false, more = false } = {}) {
   return `
     <section class="viz-card ${wide ? "wide" : ""}" id="${id}">
       <header class="viz-card-head">
@@ -225,6 +228,7 @@ function chartCard(id, title, subtitle, { wide = false } = {}) {
         <button class="btn sm" type="button" data-table-toggle="${id}" title="${t("chart.tableTitle")}">${icon("table-2", 13)}<span>${t("chart.table")}</span></button>
       </header>
       <div class="viz-body"></div>
+      ${more ? `<div class="viz-more hidden"></div>` : ""}
       <div class="viz-table hidden"></div>
     </section>`;
 }
@@ -255,7 +259,7 @@ function overviewTemplate() {
         <div class="kpis" id="kpis"></div>
         <div class="viz-grid">
           ${chartCard("viz-activity", t("overview.activity"), t("overview.activitySub", { days }), { wide: true })}
-          ${chartCard("viz-collections", t("overview.byFolder"), t("overview.byFolderSub"))}
+          ${chartCard("viz-collections", t("overview.byFolder"), t("overview.byFolderSub"), { more: true })}
           ${chartCard("viz-contributors", t("overview.contributors"), t("overview.contributorsSub", { days }))}
           <section class="viz-card" id="viz-health">
             <header class="viz-card-head"><div class="grow"><h2>${t("overview.health")}</h2><span class="muted">${t("overview.healthSub")}</span></div></header>
@@ -292,6 +296,11 @@ async function renderOverview(main) {
       card.querySelector(".viz-body").classList.toggle("hidden", showTable);
       toggle.classList.toggle("active", showTable);
       toggle.querySelector("span").textContent = showTable ? t("chart.chart") : t("chart.table");
+      return;
+    }
+    if (e.target.closest("[data-folders-more]")) {
+      state.foldersExpanded = !state.foldersExpanded;
+      renderOverviewCharts();
       return;
     }
     const open = e.target.closest("[data-open-note]");
@@ -394,11 +403,21 @@ function renderOverviewCharts() {
     d.activity.map((p) => [fmtDay(p.day, { day: "2-digit", month: "2-digit", year: "numeric" }), p.edits, p.created]),
   );
 
+  const folders = d.by_collection;
+  const hiddenCount = folders.length - FOLDERS_PREVIEW;
+  const shown = state.foldersExpanded || hiddenCount <= 0 ? folders : folders.slice(0, FOLDERS_PREVIEW);
   drawBars(
     card("viz-collections").querySelector(".viz-body"),
-    d.by_collection.map((c) => ({ label: c.name, value: c.documents, dot: colorFor(c.name) })),
+    shown.map((c) => ({ label: c.name, value: c.documents, dot: colorFor(c.name) })),
     { valueName: (v) => t("unit.note", { count: v }), empty: t("chart.noFolders") },
   );
+  const more = card("viz-collections").querySelector(".viz-more");
+  more.classList.toggle("hidden", hiddenCount <= 0);
+  if (hiddenCount > 0) {
+    more.innerHTML = `<button class="btn sm ghost" type="button" data-folders-more aria-expanded="${Boolean(state.foldersExpanded)}">
+      <span>${state.foldersExpanded ? t("chart.showLess") : t("chart.showMore", { count: hiddenCount })}</span>${icon("chevron-right", 14)}</button>`;
+    loadIcons(more);
+  }
   card("viz-collections").querySelector(".viz-table").innerHTML = dataTable(
     [t("col.folder"), t("col.notes")],
     d.by_collection.map((c) => [c.name, c.documents]),

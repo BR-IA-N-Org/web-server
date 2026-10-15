@@ -36,7 +36,7 @@ function renderShell() {
           ${navForRole()
             .map(
               (n) => `
-            <button class="nav-item ${state.screen === n.id ? "active" : ""}" data-nav="${n.id}">
+            <button class="nav-item ${state.screen === n.id ? "active" : ""}" data-nav="${n.id}" title="${t(`nav.${n.id}`)}">
               ${icon(n.iconName)}<span>${t(`nav.${n.id}`)}</span>
             </button>`,
             )

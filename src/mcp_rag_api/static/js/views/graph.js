@@ -3,7 +3,7 @@ import { api } from "../api.js";
 import { t } from "../i18n.js";
 import { graphTheme } from "../theme.js";
 import { icon, loadIcons } from "../icons.js";
-import { escHtml, debounce } from "../ui.js";
+import { escHtml, debounce, scrollArrows } from "../ui.js";
 import { state, colorFor, store } from "../state.js";
 import { on } from "../events.js";
 import { closePanel, openConnectModal, openDocumentPanel } from "./docpanel.js";
@@ -14,6 +14,7 @@ import { createLocationPicker } from "../location-picker.js";
 
 const MODE_KEY = "concilium:graph-mode";
 const LINK_SCALE_KEY = "concilium:graph-link-scale";
+const LEGEND_KEY = "concilium:graph-legend-collapsed";
 const LINK_SCALE_MIN = 0.3;
 const LINK_SCALE_MAX = 3;
 
@@ -22,6 +23,9 @@ function loadGraphPrefs() {
   if (mode === "2d" || mode === "3d") state.graphMode = mode;
   const scale = Number(store.get(LINK_SCALE_KEY));
   if (scale >= LINK_SCALE_MIN && scale <= LINK_SCALE_MAX) state.linkScale = scale;
+  // legenda recolhida: o que a pessoa escolheu; sem escolha, começa recolhida no celular (cobre o grafo)
+  const collapsed = store.get(LEGEND_KEY);
+  state.legendCollapsed = typeof collapsed === "boolean" ? collapsed : matchMedia("(max-width: 760px)").matches;
 }
 
 const fmtScale = (v) => `${v.toFixed(1)}×`;
@@ -38,31 +42,33 @@ function graphTemplate() {
           <h1>${icon("network", 18)} ${t("graph.title")}</h1>
           <span class="sub" id="graph-sub"></span>
         </header>
-        <div class="toolbar">
-          <div id="f-location"></div>
-          <div class="field">${icon("sliders-horizontal")}<label for="f-sim">${t("graph.similarity")} <span id="f-sim-val" class="mono">${state.minSimilarity.toFixed(2)}</span></label>
-            <input type="range" id="f-sim" min="0" max="0.95" step="0.05" value="${state.minSimilarity}" />
+        <div class="strip-wrap">
+          <div class="toolbar graph-toolbar" id="graph-toolbar">
+            <div id="f-location"></div>
+            <div class="field">${icon("sliders-horizontal")}<label for="f-sim">${t("graph.similarity")} <span id="f-sim-val" class="mono">${state.minSimilarity.toFixed(2)}</span></label>
+              <input type="range" id="f-sim" min="0" max="0.95" step="0.05" value="${state.minSimilarity}" />
+            </div>
+            <div class="field">${icon("spline")}<label for="f-width">${t("graph.lineWidth")} <span id="f-width-val" class="mono">${fmtScale(state.linkScale)}</span></label>
+              <input type="range" id="f-width" min="${LINK_SCALE_MIN}" max="${LINK_SCALE_MAX}" step="0.1" value="${state.linkScale}" />
+            </div>
+            <div class="field tech"><label for="f-k">Top-k</label>
+              <select id="f-k">${[1, 2, 3, 5, 8, 12, 20].map((k) => `<option ${k === state.k ? "selected" : ""}>${k}</option>`).join("")}</select>
+            </div>
+            <div class="seg tech" id="f-level">
+              <button data-level="documents" class="${state.level === "documents" ? "active" : ""}">${t("graph.documents")}</button>
+              <button data-level="chunks" class="${state.level === "chunks" ? "active" : ""}">${t("graph.chunks")}</button>
+            </div>
+            <div class="seg" id="f-mode" role="radiogroup" aria-label="${t("graph.view")}">
+              <button data-mode="2d" role="radio" aria-checked="${state.graphMode === "2d"}" class="${state.graphMode === "2d" ? "active" : ""}">2D</button>
+              <button data-mode="3d" role="radio" aria-checked="${state.graphMode === "3d"}" class="${state.graphMode === "3d" ? "active" : ""}" title="${t("graph.mode3dTitle")}">${icon("box", 14)}<span>3D</span></button>
+            </div>
+            <button class="btn sm hidden" id="hl-clear">${icon("check")}<span>${t("graph.clearHighlight")}</span></button>
+            ${
+              state.user?.role === "admin"
+                ? `<button class="btn sm ghost" id="connect-mode" title="${t("graph.connectTitle")}">${icon("link", 14)}<span>${t("graph.connect")}</span></button>`
+                : ""
+            }
           </div>
-          <div class="field">${icon("spline")}<label for="f-width">${t("graph.lineWidth")} <span id="f-width-val" class="mono">${fmtScale(state.linkScale)}</span></label>
-            <input type="range" id="f-width" min="${LINK_SCALE_MIN}" max="${LINK_SCALE_MAX}" step="0.1" value="${state.linkScale}" />
-          </div>
-          <div class="field tech"><label for="f-k">Top-k</label>
-            <select id="f-k">${[1, 2, 3, 5, 8, 12, 20].map((k) => `<option ${k === state.k ? "selected" : ""}>${k}</option>`).join("")}</select>
-          </div>
-          <div class="seg tech" id="f-level">
-            <button data-level="documents" class="${state.level === "documents" ? "active" : ""}">${t("graph.documents")}</button>
-            <button data-level="chunks" class="${state.level === "chunks" ? "active" : ""}">${t("graph.chunks")}</button>
-          </div>
-          <div class="seg" id="f-mode" role="radiogroup" aria-label="${t("graph.view")}">
-            <button data-mode="2d" role="radio" aria-checked="${state.graphMode === "2d"}" class="${state.graphMode === "2d" ? "active" : ""}">2D</button>
-            <button data-mode="3d" role="radio" aria-checked="${state.graphMode === "3d"}" class="${state.graphMode === "3d" ? "active" : ""}" title="${t("graph.mode3dTitle")}">${icon("box", 14)}<span>3D</span></button>
-          </div>
-          <button class="btn sm hidden" id="hl-clear">${icon("check")}<span>${t("graph.clearHighlight")}</span></button>
-          ${
-            state.user?.role === "admin"
-              ? `<button class="btn sm ghost" id="connect-mode" title="${t("graph.connectTitle")}">${icon("link", 14)}<span>${t("graph.connect")}</span></button>`
-              : ""
-          }
         </div>
         <div class="graph-wrap" id="graph-wrap">
           <!-- o force-graph limpa o elemento em que é montado: overlays ficam fora de #graph-canvas -->
@@ -84,6 +90,7 @@ function graphTemplate() {
 function bindGraphControls() {
   const main = document.getElementById("main");
   const reloadSoon = debounce(loadGraph, 250);
+  scrollArrows(main.querySelector("#graph-toolbar"));
   // local: coleção ou pasta (com subpastas) — com uma coleção só, o recorte útil são as pastas
   state.graphPicker = createLocationPicker(main.querySelector("#f-location"), {
     value: { collection: state.collection, folderId: state.folderId },
@@ -150,6 +157,12 @@ function bindGraphControls() {
   legend.addEventListener("mouseover", (e) => setLegendHover(e.target.closest(".legend-row")?.dataset.col || null));
   legend.addEventListener("mouseleave", () => setLegendHover(null));
   legend.addEventListener("click", (e) => {
+    if (e.target.closest("[data-legend-toggle]")) {
+      state.legendCollapsed = !state.legendCollapsed;
+      store.set(LEGEND_KEY, state.legendCollapsed);
+      applyLegendCollapsed(legend);
+      return;
+    }
     if (e.target.closest("[data-toggle-semantic]")) {
       state.showSemantic = !state.showSemantic;
       loadGraph();
@@ -163,6 +176,15 @@ function bindGraphControls() {
     state.graphPicker?.set({ collection: state.collection, folderId: null });
     loadGraph();
   });
+}
+
+function applyLegendCollapsed(legend) {
+  const collapsed = Boolean(state.legendCollapsed);
+  legend.classList.toggle("collapsed", collapsed);
+  const toggle = legend.querySelector("[data-legend-toggle]");
+  if (!toggle) return;
+  toggle.setAttribute("aria-expanded", String(!collapsed));
+  toggle.title = collapsed ? t("legend.expand") : t("legend.collapse");
 }
 
 let graphRequest = 0;
@@ -683,7 +705,10 @@ function drawGraph(data) {
   const legend = document.getElementById("graph-legend");
   const plural = (count) => t(state.level === "documents" ? "legend.docs" : "legend.chunks", { count });
   legend.innerHTML = `
-    <div class="legend-head">${t("legend.collections")}</div>
+    <button class="legend-head legend-toggle" type="button" data-legend-toggle>
+      <span class="grow">${t("legend.collections")}</span>${icon("chevron-right", 14)}
+    </button>
+    <div class="legend-body">
     ${data.collections
       .map(
         (c) => `
@@ -706,7 +731,9 @@ function drawGraph(data) {
         <span class="edge-swatch semantic"></span><span class="legend-name">${t("legend.similarity")}</span>
         <span class="count">${state.showSemantic ? semanticEdges.length : t("legend.hidden")}</span></button>`
         : ""
-    }`;
+    }
+    </div>`;
+  applyLegendCollapsed(legend);
   loadIcons(legend);
   for (const id of ["graph-legend", "graph-hint", "graph-zoom"]) document.getElementById(id).classList.remove("hidden");
 }

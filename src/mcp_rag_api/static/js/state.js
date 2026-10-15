@@ -6,6 +6,7 @@ const state = {
   screen: "overview", // tela inicial ao entrar
   insightsDays: 30, // período do Painel (7 | 30 | 90)
   insights: null,
+  foldersExpanded: false, // Painel: "Notas por pasta" mostrando todas as pastas (Ver mais)
   level: "documents",
   collection: "",
   folderId: null, // grafo: pasta escolhida no seletor de local (inclui subpastas)
