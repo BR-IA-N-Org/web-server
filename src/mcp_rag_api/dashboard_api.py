@@ -135,10 +135,13 @@ async def get_graph(
     k: int = Query(default=5, ge=1, le=20),
     level: Literal["documents", "chunks"] = "documents",
     folder_id: str | None = None,
+    view: Literal["auto", "all", "groups"] = "auto",
+    group: int | None = Query(default=None, ge=0),
 ) -> dict:
     """Nós e arestas do grafo da base: vizinhança por cosseno (centroides ou chunks). folder_id = só a
-    pasta e as subpastas."""
-    return await graph.build_graph(level, collection, min_similarity, k, folder_id or None)
+    pasta e as subpastas. No nível documentos os nós vêm com x,y do layout do servidor; view="groups"
+    (padrão acima de ~1.500 notas em "auto") devolve um nó por grupo de assunto e group=N, as notas dele."""
+    return await graph.build_graph(level, collection, min_similarity, k, folder_id or None, view=view, group=group)
 
 
 @router.get("/folders")

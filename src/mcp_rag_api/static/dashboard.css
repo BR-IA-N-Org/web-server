@@ -2475,6 +2475,39 @@ textarea.input {
   animation: fade-in 0.2s ease-out;
 }
 
+/* grupo aberto (plan-web-26): "‹ Grupos" + nome do grupo, no canto do grafo */
+.graph-crumb {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 24px);
+  padding: 4px 12px 4px 4px;
+  background: rgba(var(--surface-rgb), 0.92);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  backdrop-filter: blur(4px);
+}
+
+.graph-crumb-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+/* aviso do grafo desce para não cobrir o "voltar" do grupo */
+.graph-wrap:has(.graph-crumb:not(.hidden)) .graph-notice {
+  top: 56px;
+}
+
 .graph-notice strong {
   color: var(--text);
   font-family: var(--mono);

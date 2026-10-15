@@ -1,5 +1,6 @@
 """App HTTP: API REST (FastAPI) + endpoint MCP streamable HTTP em /mcp + dashboard web em /dashboard."""
 
+import asyncio
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from html import escape
@@ -15,6 +16,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from . import db
 from .api import router
 from .config import EMBEDDING_DIM, check_config, get_settings, oauth_issue
+from .core import graph
 from .core.dash_auth import DashUser
 from .core.embeddings import close_embedder, get_embedder
 from .dashboard_api import auth_router, current_user
@@ -75,7 +77,12 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         await get_embedder().warmup()
     try:
         async with db.lifespan(), mcp.session_manager.run():
-            yield
+            # layout do grafo em segundo plano (plan-web-26): pronto antes de alguém abrir o grafo
+            warm = asyncio.create_task(graph.warm_layout())
+            try:
+                yield
+            finally:
+                warm.cancel()
     finally:
         await close_embedder()
 
