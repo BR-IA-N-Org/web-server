@@ -167,7 +167,7 @@ flowchart LR
 
 | Grupo de tools MCP | Tools |
 |---|---|
-| Base de conocimiento | `search_knowledge`, `get_document`, `list_documents`, `add_document`, `update_document`, `upsert_document`, `archive_document`, `document_history`, colecciones |
+| Base de conocimiento | `search_knowledge`, `get_document`, `list_documents`, `add_document`, `update_document`, `edit_document`, `upsert_document`, `archive_document`, `document_history`, colecciones |
 | Enlaces | `get_related`, `link_documents`, `unlink_documents`, además de `[[Título]]` en el contenido |
 | Agente (sobre sí mismo) | `load_agent`, `recall`, `remember`, `forget`, `save_session`, `upsert_task`, `propose_agent_update`, … |
 | Gestión | `create_agent`, `update_agent`, `set_agent_autonomy`, `review_agent_update`, `issue_agent_key`, … |
