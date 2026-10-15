@@ -65,6 +65,18 @@ class DocumentPatch(BaseModel):
     base_version: int | None = None  # trava otimista opcional: conflito devolve 409 + current_version
 
 
+class TextEditIn(BaseModel):
+    old_text: str
+    new_text: str
+
+
+class DocumentEdit(BaseModel):
+    change_note: str
+    edits: list[TextEditIn] | None = None
+    append: str | None = None
+    base_version: int | None = None
+
+
 class LinkIn(BaseModel):
     target_id: str
     note: str | None = None
@@ -239,6 +251,11 @@ async def move_document(document_id: str, body: DocumentMove, p: Principal = Aut
 @router.patch("/documents/{document_id}")
 async def update_document(document_id: str, body: DocumentPatch, p: Principal = Auth) -> dict:
     return await documents.update_document(p, document_id, **body.model_dump())
+
+
+@router.post("/documents/{document_id}/edit")
+async def edit_document(document_id: str, body: DocumentEdit, p: Principal = Auth) -> dict:
+    return await documents.edit_document(p, document_id, **body.model_dump())
 
 
 @router.delete("/documents/{document_id}")
