@@ -9,6 +9,7 @@ from typing import Any
 
 from mcp.server.mcpserver import Context, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
+from mcp_types import ListToolsResult
 
 from . import db
 from .config import get_settings
@@ -43,7 +44,113 @@ async def _lifespan(_server: MCPServer) -> AsyncIterator[None]:
             yield
 
 
-mcp = MCPServer("kb", instructions=INSTRUCTIONS, lifespan=_lifespan)
+# ------------------------------------------------------------ visibilidade das tools por conexão
+# Cada conexão só VÊ as tools que consegue usar (a permissão de cada chamada não muda: é conferida no core).
+# Sem isso, um cliente conectado como pessoa (OAuth, sem agente) via "recall"/"load_agent" — cuja descrição
+# manda chamar no início da conversa — e o modelo tentava e falhava ("esta chave não pertence a um agente").
+
+# escopo que a tool exige (o mesmo p.require do core)
+TOOL_SCOPES: dict[str, str] = {
+    **dict.fromkeys(
+        (
+            "search_knowledge",
+            "get_document",
+            "list_documents",
+            "list_collections",
+            "list_folders",
+            "document_history",
+            "get_related",
+            "get_agent",
+            "list_agents",
+            "load_agent",
+            "recall",
+            "list_sessions",
+            "list_tasks",
+        ),
+        "read",
+    ),
+    **dict.fromkeys(
+        (
+            "create_collection",
+            "create_folder",
+            "add_document",
+            "update_document",
+            "upsert_document",
+            "move_document",
+            "archive_document",
+            "link_documents",
+            "unlink_documents",
+            "remember",
+            "forget",
+            "save_session",
+            "upsert_task",
+            "propose_agent_update",
+        ),
+        "write",
+    ),
+    **dict.fromkeys(("rename_collection", "delete_collection"), "admin"),
+    **dict.fromkeys(
+        (
+            "create_agent",
+            "update_agent",
+            "set_agent_autonomy",
+            "clone_agent",
+            "archive_agent",
+            "restore_agent_version",
+            "issue_agent_key",
+            "revoke_agent_key",
+            "list_agent_proposals",
+            "review_agent_update",
+            "add_agent_memory",
+            "add_agent_task",
+        ),
+        "agents:manage",
+    ),
+}
+# tools do contexto de um agente: sem agent_slug usam o agente dono da conexão; quem não é agente só
+# consegue usá-las com agents:manage, informando agent_slug
+AGENT_CONTEXT_TOOLS = {
+    "load_agent",
+    "recall",
+    "remember",
+    "forget",
+    "save_session",
+    "list_sessions",
+    "list_tasks",
+    "upsert_task",
+}
+SELF_ONLY_TOOLS = {"propose_agent_update"}  # só o próprio agente propõe mudança no próprio perfil
+_MANAGER_NOTE = " (Esta conexão não é de um agente: informe agent_slug.)"
+
+
+def tool_visible(name: str, p: Principal) -> bool:
+    if name in SELF_ONLY_TOOLS and p.agent_slug is None:
+        return False
+    if name in AGENT_CONTEXT_TOOLS and p.agent_slug is None and not p.is_manager:
+        return False
+    scope = TOOL_SCOPES.get(name)
+    return scope is None or p.has(scope)
+
+
+class ConciliumMCPServer(MCPServer):
+    async def _handle_list_tools(self, ctx, params):  # type: ignore[no-untyped-def]
+        result = await super()._handle_list_tools(ctx, params)
+        context = Context(request_context=ctx, mcp_server=self, input_params=params, subscriptions=self._subscriptions)
+        try:
+            p = await current_principal(context)
+        except KBError:
+            return result  # sem credencial o portão já barrou; aqui só por garantia
+        tools = []
+        for t in result.tools:
+            if not tool_visible(t.name, p):
+                continue
+            if t.name in AGENT_CONTEXT_TOOLS and p.agent_slug is None:
+                t = t.model_copy(update={"description": (t.description or "") + _MANAGER_NOTE})
+            tools.append(t)
+        return ListToolsResult(tools=tools)
+
+
+mcp = ConciliumMCPServer("kb", instructions=INSTRUCTIONS, lifespan=_lifespan)
 
 
 async def current_principal(ctx: Context) -> Principal:
