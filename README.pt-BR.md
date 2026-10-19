@@ -115,6 +115,8 @@ uv run mcp-rag-api create-user --username voce --role admin
 uv run mcp-rag-api create-key --label eu --scopes admin
 ```
 
+**Autenticação em dois fatores**: cada pessoa ativa em *menu do usuário → Segurança (2FA)*, com Google Authenticator, Authy, 1Password ou outro app TOTP, e guarda os códigos de recuperação. Perdeu o celular e os códigos? Um admin reseta em **Usuários**, ou pela CLI: `uv run mcp-rag-api reset-2fa --username voce`. Para guardar os segredos do 2FA cifrados no banco, defina `DASH_TOTP_ENCRYPTION_KEY` (opcional; veja o `.env.example`).
+
 Prefere Docker? O `Dockerfile.coolify` gera a imagem de produção. O `docker-compose.yml` é um exemplo que roda a API ao lado de um container Postgres já existente (rede externa `db_network`).
 
 ## Conectar seus agentes

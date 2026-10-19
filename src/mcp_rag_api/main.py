@@ -8,7 +8,7 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, Request, Response
 from fastapi.openapi.utils import get_openapi
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -57,11 +57,12 @@ def _log_boot_summary() -> None:
     if not s.kb_auth_disabled:
         auth_mode += " + oauth" if OAUTH_ACTIVE else ""
     logger.info(
-        "boot: embedding_provider=%s embedding_dim=%d auth=%s dash_session_ttl=%dh public_url=%s",
+        "boot: embedding_provider=%s embedding_dim=%d auth=%s dash_session_ttl=%dh 2fa_secrets=%s public_url=%s",
         s.embedding_provider,
         EMBEDDING_DIM,
         auth_mode,
         s.dash_session_ttl_hours,
+        "cifrados" if s.dash_totp_encryption_key else "texto puro",
         s.public_url,
     )
 
@@ -122,7 +123,13 @@ SECURITY_HEADERS = {
         "script-src 'self'; "
         "connect-src 'self'"
     ),
+    # 1 ano, sem preload; includeSubDomains só alcança *.<host do Concilium>, não o domínio raiz
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
 }
+# COOP isola a dash de janelas de outra origem. Fica de fora do fluxo OAuth: o cliente (ex.: claude.ai)
+# abre o /authorize num popup e precisa manter o vínculo com ele até o redirect de volta.
+COOP_EXEMPT_PREFIXES = ("/authorize", "/oauth/")
 
 
 class GzipDashApi:
@@ -149,6 +156,8 @@ async def security_headers(request: Request, call_next: Callable[[Request], Awai
     response = await call_next(request)
     response.headers.update(SECURITY_HEADERS)
     path = request.url.path
+    if not path.startswith(COOP_EXEMPT_PREFIXES):
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
     if VERSIONED_STATIC_PREFIX and path.startswith(VERSIONED_STATIC_PREFIX + "/"):
         # URL com hash de conteúdo: muda a cada build que toca os estáticos, então pode
         # cachear para sempre (navegador e CDN). Deploy novo = URL nova = sem stale.
@@ -227,6 +236,12 @@ class RequireBearer:
 async def no_openid_configuration() -> JSONResponse:
     # clientes como o ChatGPT tentam OIDC antes do metadata OAuth: 404 limpo em vez do 401 do portão do /mcp
     return JSONResponse({"detail": "Sem OpenID Connect: use /.well-known/oauth-authorization-server."}, status_code=404)
+
+
+@app.api_route("/", methods=["GET", "HEAD"], include_in_schema=False)
+async def root_redirect() -> RedirectResponse:
+    # quem abre o domínio no navegador cai na dash; sem esta rota o "/" ia para o portão do /mcp (401)
+    return RedirectResponse("/dashboard", status_code=302)
 
 
 @app.get("/dashboard", include_in_schema=False)

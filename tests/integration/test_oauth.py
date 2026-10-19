@@ -368,5 +368,6 @@ async def test_consent_page_is_static_and_csp(editor):
     assert "script-src 'self'" in resp.headers["Content-Security-Policy"]
     assert resp.headers["X-Frame-Options"] == "DENY"
     assert resp.headers["Cache-Control"] == "no-store"
+    assert "Cross-Origin-Opener-Policy" not in resp.headers  # o popup do cliente OAuth precisa do opener
     assert "<script>" not in resp.text  # sem script inline (CSP)
     assert (await editor.get("/oauth/api/requests/inexistente")).status_code == 404

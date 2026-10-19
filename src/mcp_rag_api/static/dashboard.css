@@ -1904,7 +1904,7 @@ select option {
 }
 
 .trow.users {
-  grid-template-columns: minmax(200px, 1.5fr) 170px 120px 120px 210px;
+  grid-template-columns: minmax(200px, 1.5fr) 170px 120px 120px 300px;
 }
 
 .trow .reset-row {
@@ -2423,7 +2423,7 @@ textarea.input {
   }
 
   .trow.users {
-    grid-template-columns: minmax(160px, 1.5fr) 160px 200px;
+    grid-template-columns: minmax(160px, 1.5fr) 160px 290px;
   }
 
   .create-grid,
@@ -5612,4 +5612,102 @@ table.dt .num {
   .split > .panel {
     animation: none;
   }
+}
+
+/* ---------------------------------------------------------------- 2FA (login e tela Segurança) */
+
+.mfa-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mfa-code {
+  font-family: var(--mono);
+  font-size: 18px;
+  letter-spacing: 0.18em;
+  text-align: center;
+}
+
+.mfa-links {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mfa-page {
+  max-width: 760px;
+}
+
+.mfa-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+}
+
+.mfa-step,
+.mfa-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mfa-steps {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text-body);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.mfa-qr-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+/* fundo branco fixo: leitor de QR precisa de contraste, também no tema escuro */
+.mfa-qr {
+  width: 180px;
+  height: 180px;
+  padding: 6px;
+  border-radius: var(--radius);
+  background: #fff;
+  image-rendering: pixelated;
+}
+
+.mfa-manual {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.mfa-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.mfa-codes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 6px;
+}
+
+.mfa-codes code {
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  text-align: center;
+  font-size: 13px;
 }
