@@ -54,8 +54,12 @@ function renderLogin(message = "") {
 }
 
 function renderMfaStep(mfaToken, enter) {
-  const card = document.querySelector("#app .login-card");
+  // o cartão do login é um <form>: o passo do código entra num cartão novo no lugar dele
+  // (form dentro de form é descartado pelo parser e o envio cairia no form da senha)
+  const card = document.createElement("div");
+  card.className = "login-card";
   card.innerHTML = `<div class="brand">${brandLogo(30)}<span>Concilium</span></div>${mfaStepHtml()}`;
+  document.getElementById("login-form").replaceWith(card);
   bindMfaStep(card, {
     mfaToken,
     post: (body) => api.post("/auth/login/mfa", body),
