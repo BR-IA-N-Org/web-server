@@ -70,6 +70,7 @@ function renderUserFooter() {
         <span class="muted">${roleLabel}</span>
       </div>
       <div class="menu-sep"></div>
+      ${item('data-goto="security"', "shield-check", t("menu.security"))}
       ${item('data-goto="keys"', "key-round", t("menu.keys"))}
       ${item('data-goto="connections"', "plug", t("menu.connections"))}
       ${isAdmin ? item('data-goto="users"', "users", t("menu.users")) : ""}

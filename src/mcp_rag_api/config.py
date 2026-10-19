@@ -51,6 +51,9 @@ class Settings(BaseSettings):
     # Dashboard: falhas de login permitidas por (usuário, IP) antes do backoff exponencial.
     # 0 desliga o rate limit (só para dev/testes controlados).
     dash_login_rate_limit: int = 5
+    # Cifra os segredos do 2FA (TOTP) no banco com AES-256-GCM. Opcional: vazio = texto puro.
+    # Gere com `openssl rand -base64 32` e guarde fora do banco; perder a chave = resetar o 2FA de todos.
+    dash_totp_encryption_key: str = ""
 
     # OAuth do MCP (plan-web-17): clientes como o Claude conectam pela tela "Autorizar", sem copiar chave.
     # O issuer é o PUBLIC_URL (https em produção; http só em localhost).
@@ -139,6 +142,10 @@ def check_config() -> list[str]:
         raise RuntimeError(
             f"KB_AUTH_DISABLED=true só é aceito com PUBLIC_URL local; PUBLIC_URL={s.public_url}. "
             "Desligue KB_AUTH_DISABLED em produção."
+        )
+    if s.dash_totp_encryption_key and len(s.dash_totp_encryption_key) < 32:
+        raise RuntimeError(
+            "DASH_TOTP_ENCRYPTION_KEY curta demais: use ao menos 32 caracteres (openssl rand -base64 32)"
         )
     warnings: list[str] = []
     if public and urlparse(s.database_url).password in WEAK_DB_PASSWORDS:
