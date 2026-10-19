@@ -12,6 +12,7 @@ import { renderKeysList } from "./views/keys.js";
 import { renderConnectionsList } from "./views/connections.js";
 import { renderAgentsList } from "./views/agents.js";
 import { renderUsersList } from "./views/users.js";
+import { renderSecurityPage } from "./views/security.js";
 import { closePanel } from "./views/docpanel.js";
 
 // troca de tela: a de notas guarda o endereço da nota aberta (#/notes/<id>), as outras limpam
@@ -67,6 +68,10 @@ async function renderScreen() {
     main.innerHTML = pageTemplate("bot", t("agents.title"), t("agents.sub"));
     await loadIcons(main);
     await renderAgentsList();
+  } else if (state.screen === "security") {
+    main.innerHTML = pageTemplate("shield-check", t("mfa.pageTitle"), t("mfa.pageSub"));
+    await loadIcons(main);
+    await renderSecurityPage();
   } else if (state.screen === "users") {
     main.innerHTML = pageTemplate("users", t("users.title"), t("users.sub"));
     await loadIcons(main);

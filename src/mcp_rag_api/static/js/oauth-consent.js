@@ -5,6 +5,7 @@ import { t } from "./i18n.js";
 import { icon, loadIcons } from "./icons.js";
 import { brandLogo, enhancePasswordFields, escHtml } from "./ui.js";
 import { syncFavicon } from "./brand.js";
+import { mfaStepHtml, bindMfaStep } from "./mfa-step.js";
 
 const requestId = new URLSearchParams(location.search).get("request") || "";
 const app = document.getElementById("app");
@@ -46,7 +47,7 @@ function renderError(message) {
     <p class="muted">${t("oauth.retry")}</p>`);
 }
 
-function renderLogin(info) {
+function renderLogin(info, message = "") {
   shell(`
     ${header(info)}
     <form id="consent-login" class="consent-login">
@@ -55,19 +56,31 @@ function renderLogin(info) {
       <input class="input" id="login-user" type="text" autocomplete="username" required />
       <label class="form-label" for="login-pass">${t("login.password")}</label>
       <input class="input" id="login-pass" type="password" autocomplete="current-password" required />
-      <div class="form-error hidden" id="login-error"></div>
+      <div class="form-error ${message ? "" : "hidden"}" id="login-error"></div>
       <button class="btn primary" type="submit">${icon("log-in")}<span>${t("login.submit")}</span></button>
     </form>`);
   enhancePasswordFields(app);
   const error = document.getElementById("login-error");
+  error.textContent = message;
   document.getElementById("consent-login").addEventListener("submit", async (e) => {
     e.preventDefault();
     error.classList.add("hidden");
     try {
-      await call("POST", "/dash/api/auth/login", {
+      const result = await call("POST", "/dash/api/auth/login", {
         username: document.getElementById("login-user").value,
         password: document.getElementById("login-pass").value,
       });
+      if (result.mfa_required) {
+        // 2FA ligado: o código entra no lugar do formulário de senha, abaixo do cabeçalho do app
+        app.querySelector("#consent-login").outerHTML = `<div id="consent-mfa">${mfaStepHtml()}</div>`;
+        bindMfaStep(app.querySelector("#consent-mfa"), {
+          mfaToken: result.mfa_token,
+          post: (body) => call("POST", "/dash/api/auth/login/mfa", body),
+          onDone: load,
+          onBack: (msg) => renderLogin(info, msg),
+        });
+        return;
+      }
       await load();
     } catch (err) {
       error.textContent = err.status === 401 ? t("login.invalid") : err.status === 429 ? err.detail : t("login.failed");

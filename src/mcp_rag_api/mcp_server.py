@@ -75,6 +75,7 @@ TOOL_SCOPES: dict[str, str] = {
             "create_folder",
             "add_document",
             "update_document",
+            "edit_document",
             "upsert_document",
             "move_document",
             "archive_document",

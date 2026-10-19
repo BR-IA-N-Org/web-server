@@ -12,7 +12,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile
 from pydantic import BaseModel, Field
 
-from .core import agents, dash_auth, documents, folders, graph, links, oauth, obsidian_import, search
+from .core import agents, dash_auth, documents, folders, graph, links, mfa, oauth, obsidian_import, search
 from .core.dash_auth import DashUser
 from .core.documents import parse_uuid
 from .db import audit, pool, record, records
@@ -69,22 +69,80 @@ auth_router = APIRouter(
 )
 
 
-@auth_router.post("/login")
-async def login(body: LoginIn, request: Request, response: Response) -> dict:
-    limiter = dash_auth.login_rate_limiter()
-    rate_key = (body.username.strip().lower(), request.client.host if request.client else "?")
-    blocked = limiter.blocked_for(rate_key)
+def client_ip(request: Request) -> str:
+    """IP do cliente para o rate limit. Atrás do Cloudflare vale o CF-Connecting-IP (o Cloudflare
+    sobrescreve o que vier do cliente); o request.client.host sai do X-Forwarded-For mais à
+    esquerda (--forwarded-allow-ips='*'), que o próprio cliente consegue forjar."""
+    cf_ip = request.headers.get("cf-connecting-ip", "").strip()
+    return cf_ip or (request.client.host if request.client else "?")
+
+
+def _login_buckets(username: str, request: Request) -> list[tuple[dash_auth.LoginRateLimiter, tuple[str, str]]]:
+    return [
+        (dash_auth.login_rate_limiter(), (username, client_ip(request))),
+        (dash_auth.login_user_rate_limiter(), (username, "*")),
+    ]
+
+
+def _check_login_blocked(buckets: list[tuple[dash_auth.LoginRateLimiter, tuple[str, str]]]) -> None:
+    blocked = max(limiter.blocked_for(key) for limiter, key in buckets)
     if blocked:
         raise HTTPException(
             status_code=429,
             detail=f"Muitas tentativas de login. Tente novamente em {int(blocked) + 1}s.",
         )
+
+
+@auth_router.post("/login")
+async def login(body: LoginIn, request: Request, response: Response) -> dict:
+    username = body.username.strip().lower()
+    buckets = _login_buckets(username, request)
+    _check_login_blocked(buckets)
     user = await dash_auth.authenticate(body.username, body.password)
     if user is None:
-        limiter.register_failure(rate_key)
-        logger.warning("dash auth: login falhou (username=%s)", body.username.strip().lower())
+        for limiter, key in buckets:
+            limiter.register_failure(key)
+        logger.warning("dash auth: login falhou (username=%s ip=%s)", username, client_ip(request))
         raise HTTPException(status_code=401, detail="Usuário ou senha inválidos.")
-    limiter.reset(rate_key)
+    if await mfa.is_enabled(user.id):
+        # senha certa não zera o rate limit: quem tem só a senha não ganha tentativas de código à vontade
+        logger.info("dash auth: senha ok, aguardando 2FA (username=%s)", user.username)
+        return {"mfa_required": True, "mfa_token": await mfa.create_challenge(user.id)}
+    for limiter, key in buckets:
+        limiter.reset(key)
+    return await _start_session(user, request, response)
+
+
+class MfaLoginIn(BaseModel):
+    mfa_token: str
+    code: str
+
+
+@auth_router.post("/login/mfa")
+async def login_mfa(body: MfaLoginIn, request: Request, response: Response) -> dict:
+    """2ª etapa do login: código do app autenticador ou um recovery code."""
+    who = await mfa.challenge_user(body.mfa_token)
+    if who is None:
+        raise HTTPException(status_code=401, detail="Verificação expirada. Entre com a senha de novo.")
+    buckets = _login_buckets(who["username"], request)
+    _check_login_blocked(buckets)
+    method = await mfa.verify(who["id"], body.code)
+    if method is None:
+        await mfa.register_challenge_failure(body.mfa_token)
+        for limiter, key in buckets:
+            limiter.register_failure(key)
+        logger.warning("dash auth: código 2FA inválido (username=%s ip=%s)", who["username"], client_ip(request))
+        raise HTTPException(status_code=400, detail="Código inválido.")
+    await mfa.consume_challenge(body.mfa_token)
+    for limiter, key in buckets:
+        limiter.reset(key)
+    if method == "recovery":
+        async with pool().acquire() as conn:
+            await audit(conn, f"dash:{who['username']}", "dash.2fa.recovery_used", who["username"])
+    return await _start_session(DashUser(**who), request, response)
+
+
+async def _start_session(user: DashUser, request: Request, response: Response) -> dict:
     token = await dash_auth.create_session(user.id)
     # cookie Secure só em HTTPS: em produção o uvicorn roda atrás de proxy com
     # --proxy-headers (X-Forwarded-Proto chega no scheme da request); em dev local (HTTP)
@@ -818,13 +876,98 @@ async def renew_key(key_id: str, user: DashUser = Depends(require_admin)) -> dic
     return {"revoked_key_id": str(key_uuid), **key}
 
 
+# ---------------------------------------------------------------- 2FA da própria conta
+
+
+class PasswordIn(BaseModel):
+    password: str
+
+
+class CodeIn(BaseModel):
+    code: str
+
+
+class DisableMfaIn(BaseModel):
+    password: str
+    code: str
+
+
+async def _recheck_password(user: DashUser, password: str, request: Request) -> None:
+    """Mudanças no 2FA pedem a senha de novo (sessão roubada sozinha não liga/desliga nada).
+    Erros contam no mesmo rate limit do login."""
+    buckets = _login_buckets(user.username, request)
+    _check_login_blocked(buckets)
+    if await dash_auth.authenticate(user.username, password) is None:
+        for limiter, key in buckets:
+            limiter.register_failure(key)
+        raise HTTPException(status_code=400, detail="Senha incorreta.")
+
+
+@router.get("/account/2fa")
+async def mfa_status(user: DashUser = Depends(current_user)) -> dict:
+    return await mfa.status(user.id)
+
+
+@router.post("/account/2fa/setup")
+async def mfa_setup(body: PasswordIn, request: Request, user: DashUser = Depends(current_user)) -> dict:
+    if await mfa.is_enabled(user.id):
+        raise KBError("O 2FA já está ligado. Desligue antes de cadastrar outro aparelho.")
+    await _recheck_password(user, body.password, request)
+    return await mfa.begin_setup(user.id, user.username)
+
+
+@router.post("/account/2fa/enable")
+async def mfa_enable(body: CodeIn, user: DashUser = Depends(current_user)) -> dict:
+    codes = await mfa.confirm_setup(user.id, body.code)
+    async with pool().acquire() as conn:
+        await audit(conn, f"dash:{user.username}", "dash.2fa.enable", user.username)
+    return {"recovery_codes": codes}
+
+
+@router.post("/account/2fa/disable")
+async def mfa_disable(body: DisableMfaIn, request: Request, user: DashUser = Depends(current_user)) -> dict:
+    await _recheck_password(user, body.password, request)
+    if await mfa.verify(user.id, body.code) is None:
+        raise HTTPException(status_code=400, detail="Código inválido.")
+    await mfa.disable(user.id)
+    async with pool().acquire() as conn:
+        await audit(conn, f"dash:{user.username}", "dash.2fa.disable", user.username)
+    return {"ok": True}
+
+
+@router.post("/account/2fa/recovery-codes")
+async def mfa_recovery_codes(body: CodeIn, user: DashUser = Depends(current_user)) -> dict:
+    if await mfa.verify(user.id, body.code) is None:
+        raise HTTPException(status_code=400, detail="Código inválido.")
+    codes = await mfa.regenerate_recovery_codes(user.id)
+    async with pool().acquire() as conn:
+        await audit(conn, f"dash:{user.username}", "dash.2fa.recovery_regenerate", user.username)
+    return {"recovery_codes": codes}
+
+
 # ---------------------------------------------------------------- usuários da dash
+
+USER_COLUMNS = "id, username, role, disabled_at, created_at, totp_enabled_at IS NOT NULL AS totp_enabled"
 
 
 @router.get("/users")
 async def list_users(_admin: DashUser = Depends(require_admin)) -> list[dict]:
-    rows = await pool().fetch("SELECT id, username, role, disabled_at, created_at FROM dash_users ORDER BY username")
+    rows = await pool().fetch(f"SELECT {USER_COLUMNS} FROM dash_users ORDER BY username")
     return records(rows)
+
+
+@router.delete("/users/{user_id}/2fa")
+async def reset_user_mfa(user_id: str, admin: DashUser = Depends(require_admin)) -> dict:
+    """Pessoa perdeu o celular e os recovery codes: o admin desliga o 2FA dela (e derruba as sessões)."""
+    target = parse_uuid(user_id, "user_id")
+    row = await pool().fetchrow("SELECT id, username FROM dash_users WHERE id = $1", target)
+    if row is None:
+        raise NotFound(f"Usuário {user_id} não encontrado.")
+    await mfa.disable(str(row["id"]))
+    await dash_auth.revoke_user_sessions(str(row["id"]))
+    async with pool().acquire() as conn:
+        await audit(conn, f"dash:{admin.username}", "dash.2fa.reset", row["username"])
+    return {"ok": True}
 
 
 class DashUserIn(BaseModel):
@@ -892,11 +1035,7 @@ async def update_dash_user(user_id: str, body: DashUserPatch, admin: DashUser = 
             disabled=body.disabled,
             password_reset=body.password is not None,
         )
-    updated = record(
-        await pool().fetchrow(
-            "SELECT id, username, role, disabled_at, created_at FROM dash_users WHERE id = $1", target
-        )
-    )
+    updated = record(await pool().fetchrow(f"SELECT {USER_COLUMNS} FROM dash_users WHERE id = $1", target))
     if updated is None:  # narrow pro mypy: a linha já foi validada antes do UPDATE
         raise NotFound(f"Usuário {user_id} não encontrado.")
     return updated
