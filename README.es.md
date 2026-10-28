@@ -100,8 +100,8 @@ docker run -d --name concilium-db -p 5432:5432 \
   pgvector/pgvector:pg16
 
 # 2. Instalar
-git clone https://gitlab.com/oadrianolucas/concilium-web-server.git
-cd concilium-web-server
+git clone https://github.com/concilium-mcp/web-server.git concilium
+cd concilium
 uv sync
 cp .env.example .env   # define DATABASE_URL, EMBEDDING_PROVIDER y la clave del proveedor
 
@@ -117,7 +117,18 @@ uv run mcp-rag-api create-key --label yo --scopes admin
 
 **Autenticación en dos pasos**: cada persona la activa en *menú del usuario → Seguridad (2FA)* con Google Authenticator, Authy, 1Password u otra app TOTP, y guarda los códigos de recuperación. ¿Perdió el móvil y los códigos? Un admin la restablece en **Usuarios**, o por la CLI: `uv run mcp-rag-api reset-2fa --username tu`. Para guardar cifrados en la base los secretos del 2FA, define `DASH_TOTP_ENCRYPTION_KEY` (opcional; mira el `.env.example`).
 
-¿Prefieres Docker? `Dockerfile.coolify` genera la imagen de producción. `docker-compose.yml` es un ejemplo que ejecuta la API junto a un contenedor Postgres ya existente (red externa `db_network`).
+**¿Prefieres Docker?** Se publica una imagen pública (linux/amd64 y arm64) con cada cambio en `main`: `ghcr.io/concilium-mcp/web-server`, tags `latest` y `sha-<commit>`. Pasa las mismas variables de `.env.example` con `-e` o `--env-file`:
+
+```bash
+docker run -d --name concilium -p 8000:8000 \
+  --add-host=host.docker.internal:host-gateway \
+  -e DATABASE_URL=postgresql://user:change-me@host.docker.internal:5432/kb \
+  -e EMBEDDING_PROVIDER=voyage -e VOYAGE_API_KEY=your-key \
+  ghcr.io/concilium-mcp/web-server:latest
+docker exec -it concilium mcp-rag-api create-user --username you --role admin
+```
+
+Coolify, Dokploy, Railway, Kubernetes y más: consulta la **[guía de despliegue](docs/deploy.md)** (en inglés). Para construirla tú mismo, `Dockerfile.coolify` es la misma imagen de producción. `docker-compose.yml` es un ejemplo que ejecuta la API junto a un contenedor Postgres ya existente (red externa `db_network`).
 
 ## Conecta tus agentes
 

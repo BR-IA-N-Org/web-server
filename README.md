@@ -42,6 +42,7 @@ Agents also get a home: a profile (system prompt), persistent memory, session su
 - Nested folders with no depth limit (like Notion), a WYSIWYG editor with a Markdown tab, tags and note templates
 - `[[Wikilinks]]` and backlinks, Obsidian style. Links to notes that don't exist yet resolve on their own once the note is created
 - **Obsidian vault import**: upload the `.zip` from the dashboard and watch real-time progress — folders become collections, notes become fully embedded documents, and re-importing updates instead of duplicating
+- **File import**: drop PDF, Word (`.docx`), Markdown or text files into any folder from the dashboard, or send them to `POST /documents/upload`. They are converted to Markdown and embedded right away (no OCR for scanned PDFs yet)
 - Version history with restore, conflict detection and local drafts, so nothing gets lost
 
 **🔎 Real RAG for agents**
@@ -100,8 +101,8 @@ docker run -d --name concilium-db -p 5432:5432 \
   pgvector/pgvector:pg16
 
 # 2. Install
-git clone https://gitlab.com/oadrianolucas/concilium-web-server.git
-cd concilium-web-server
+git clone https://github.com/concilium-mcp/web-server.git concilium
+cd concilium
 uv sync
 cp .env.example .env   # set DATABASE_URL, EMBEDDING_PROVIDER and the provider's API key
 
@@ -117,7 +118,18 @@ uv run mcp-rag-api create-key --label me --scopes admin
 
 **Two-factor authentication**: each person turns it on in *user menu → Security (2FA)* with Google Authenticator, Authy, 1Password or any TOTP app, and saves the recovery codes. Lost the phone and the codes? An admin resets it under **Users**, or from the CLI: `uv run mcp-rag-api reset-2fa --username you`. To store 2FA secrets encrypted in the database, set `DASH_TOTP_ENCRYPTION_KEY` (optional; see `.env.example`).
 
-Prefer Docker? `Dockerfile.coolify` builds the production image. `docker-compose.yml` is an example that runs the API next to an existing Postgres container (external network `db_network`).
+**Prefer Docker?** A public image (linux/amd64 and arm64) is published on every change to `main`: `ghcr.io/concilium-mcp/web-server`, tags `latest` and `sha-<commit>`. Pass the same variables as `.env.example` with `-e` or `--env-file`:
+
+```bash
+docker run -d --name concilium -p 8000:8000 \
+  --add-host=host.docker.internal:host-gateway \
+  -e DATABASE_URL=postgresql://user:change-me@host.docker.internal:5432/kb \
+  -e EMBEDDING_PROVIDER=voyage -e VOYAGE_API_KEY=your-key \
+  ghcr.io/concilium-mcp/web-server:latest
+docker exec -it concilium mcp-rag-api create-user --username you --role admin
+```
+
+Coolify, Dokploy, Railway, Kubernetes and more: see the **[deployment guide](docs/deploy.md)**. To build it yourself, `Dockerfile.coolify` is the same production image. `docker-compose.yml` is an example that runs the API next to an existing Postgres container (external network `db_network`).
 
 ## Connect your agents
 
@@ -178,6 +190,7 @@ Prompts: `design_agent`, `start_as_agent`, `answer_with_sources`, `save_learning
 
 ## Documentation
 
+- **[Deployment guide](docs/deploy.md)**: public Docker image, Docker Compose with pgvector, Coolify, other platforms and a production checklist
 - **[Full guide](docs/guide.pt-BR.md)** (Portuguese for now): setup, every MCP tool, scopes, REST examples, maintenance, troubleshooting and production deployment
 - Interactive REST API docs: `http://localhost:8000/dash/docs` (behind the dashboard login)
 - Architecture and design decisions: [PLANO.md](PLANO.md)
@@ -190,8 +203,8 @@ Yes, for teams. You get folders, Markdown, `[[wikilinks]]`, backlinks and a grap
 **Can it replace Notion as our team wiki?**
 For knowledge that agents need to use, it can: customer profiles, playbooks, runbooks, product docs. Concilium focuses on notes, search and agents rather than databases, kanban boards or real-time co-editing.
 
-**Can I import my Obsidian vault or Markdown files?**
-Send them through the REST API (`PUT /documents/upsert`) or ask Claude to add them through MCP, then run `uv run mcp-rag-api relink` to resolve every `[[wikilink]]`. A one-click importer isn't available yet.
+**Can I import my Obsidian vault, PDFs or Word documents?**
+Yes. In the dashboard, **Notes → Import** takes either a zipped Obsidian vault (folders become collections, `[[wikilinks]]` are kept) or loose PDF, `.docx`, Markdown and text files sent to a folder of your choice. Integrations can use `POST /documents/upload` for files or `PUT /documents/upsert` for text. Scanned PDFs need OCR first.
 
 **Does it work with ChatGPT, Cursor or other LLM tools?**
 Any client that speaks the **Model Context Protocol** can connect. Everything else can use the REST API. Embeddings are independent of the chat model.
